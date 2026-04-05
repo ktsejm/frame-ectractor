@@ -7,226 +7,330 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="フレーム抽出">
 <title>動画フレーム抽出</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#fff;--bg2:#f5f5f4;--bg3:#eeece8;
-    --text:#1a1a1a;--text2:#6b6b6b;--text3:#9b9b9b;
-    --border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
-    --radius:12px;--radius-sm:8px;
-    --blue:#2563eb;--blue-bg:#eff6ff;
-    --green:#16a34a;--green-bg:#f0fdf4;
-    --red:#dc2626;--red-bg:#fef2f2;
-    --mono:'SF Mono','Menlo','Monaco',monospace;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#fff;--bg2:#f7f7f6;--bg3:#eeedea;
+  --text:#111;--text2:#777;--text3:#aaa;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);
+  --radius:14px;--radius-sm:9px;
+  --blue:#1d6ef5;--blue-bg:#eef3fe;--blue-text:#1251c0;
+  --green:#15a34a;--green-bg:#edfaf3;--green-text:#0d7a38;
+  --red:#e03131;--red-bg:#fff0f0;--red-text:#b91c1c;
+  --accent:#111;
+  --mono:'SF Mono','Menlo','Monaco',monospace;
+  --bottom-bar:72px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#141414;--bg2:#1e1e1e;--bg3:#2a2a2a;
+    --text:#f2f2f2;--text2:#888;--text3:#555;
+    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);
+    --blue:#5b9cf6;--blue-bg:#1a2a4a;--blue-text:#93bbfa;
+    --green:#34d36a;--green-bg:#0d2a1a;--green-text:#6eefaa;
+    --red:#f87171;--red-bg:#2a1010;--red-text:#fca5a5;
+    --accent:#f2f2f2;
   }
-  @media(prefers-color-scheme:dark){
-    :root{
-      --bg:#1a1a1a;--bg2:#252525;--bg3:#2e2e2e;
-      --text:#f0f0f0;--text2:#a0a0a0;--text3:#686868;
-      --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.2);
-      --blue:#60a5fa;--blue-bg:#1e3a5f;
-      --green:#4ade80;--green-bg:#14532d;
-      --red:#f87171;--red-bg:#450a0a;
-    }
-  }
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
-    background:var(--bg);color:var(--text);
-    min-height:100svh;padding-bottom:env(safe-area-inset-bottom);
-    -webkit-text-size-adjust:100%;
-  }
-  .header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:16px 18px 14px;border-bottom:.5px solid var(--border);
-    position:sticky;top:0;background:var(--bg);z-index:10;
-  }
-  .header h1{font-size:16px;font-weight:600;}
-  .header p{font-size:12px;color:var(--text2);margin-top:1px;}
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:5px;
-    padding:8px 16px;border-radius:var(--radius-sm);
-    font-size:13px;font-weight:500;font-family:inherit;
-    cursor:pointer;border:.5px solid var(--border2);
-    background:var(--bg);color:var(--text);
-    -webkit-tap-highlight-color:transparent;transition:opacity .1s;
-  }
-  .btn:active{opacity:.65;}
-  .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text);}
-  .btn-block{width:100%;padding:13px;font-size:15px;}
-  .btn-sm{padding:5px 10px;font-size:12px;}
-  .btn-danger{color:var(--red);border-color:transparent;background:transparent;}
-  .card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-  .section{padding:16px 18px;}
-  .gap-col{display:flex;flex-direction:column;gap:12px;}
-  .drop-zone{
-    border:1.5px dashed var(--border2);border-radius:var(--radius);
-    padding:32px 16px;text-align:center;cursor:pointer;
-    background:var(--bg2);transition:background .15s,border-color .15s;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .drop-zone.dragover{background:var(--blue-bg);border-color:var(--blue);}
-  .drop-icon{
-    width:44px;height:44px;margin:0 auto 12px;border-radius:50%;
-    background:var(--bg3);display:flex;align-items:center;
-    justify-content:center;font-size:22px;color:var(--text2);
-  }
-  .drop-zone h2{font-size:15px;font-weight:600;margin-bottom:4px;}
-  .drop-zone p{font-size:13px;color:var(--text2);}
-  .file-item{
-    display:flex;align-items:center;gap:10px;padding:10px 12px;
-    background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-sm);
-  }
-  .file-num{
-    width:22px;height:22px;border-radius:50%;background:var(--bg3);
-    color:var(--text2);font-size:11px;font-weight:600;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  }
-  .file-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .file-size{font-size:11px;color:var(--text3);font-family:var(--mono);}
-  .label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-  .progress-wrap{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
-  .progress-bar{height:100%;border-radius:2px;background:var(--blue);transition:width .3s;}
-  .progress-bar.done{background:var(--green);}
-  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;}
-  .badge-info{background:var(--blue-bg);color:var(--blue);}
-  .badge-success{background:var(--green-bg);color:var(--green);}
-  .badge-danger{background:var(--red-bg);color:var(--red);}
-  .badge-gray{background:var(--bg3);color:var(--text2);}
-  .frame-card-meta{padding:10px 12px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:8px;}
-  .frame-grid{display:grid;grid-template-columns:1fr 1fr;}
-  .frame-col{padding:10px;}
-  .frame-col:first-child{border-right:.5px solid var(--border);}
-  .thumb{aspect-ratio:16/9;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:7px;}
-  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .meta-val{font-size:11px;color:var(--text3);font-family:var(--mono);}
-  .pair-header{padding:10px 12px;border-bottom:.5px solid var(--border);}
-  .pair-header strong{font-size:13px;font-weight:600;}
-  .pair-header span{font-size:11px;color:var(--text2);display:block;margin-top:1px;font-family:var(--mono);}
-  .pair-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border-top:.5px solid var(--border);}
-  .tabs{
-    display:flex;border-bottom:.5px solid var(--border);
-    padding:0 18px;background:var(--bg);
-    position:sticky;top:60px;z-index:9;
-  }
-  .tab{
-    padding:10px 14px;font-size:13px;font-weight:500;font-family:inherit;
-    background:transparent;border:none;cursor:pointer;color:var(--text2);
-    border-bottom:2px solid transparent;margin-bottom:-.5px;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .tab.active{color:var(--text);border-bottom-color:var(--text);}
-  .view{display:none;}
-  .view.active{display:block;}
-  .status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .status-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%;}
-  .status-detail{font-size:11px;color:var(--text2);margin-top:5px;font-family:var(--mono);}
-  .err-msg{font-size:12px;color:var(--red);margin-top:5px;}
-  #debug-log{
-    font-size:11px;font-family:var(--mono);color:var(--text2);
-    background:var(--bg2);border-radius:var(--radius-sm);
-    padding:10px 12px;margin-top:4px;line-height:1.6;
-    max-height:100px;overflow-y:auto;display:none;white-space:pre-wrap;
-  }
-  .empty{text-align:center;padding:40px 0;font-size:13px;color:var(--text2);}
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100svh;
+  padding-bottom:calc(var(--bottom-bar) + env(safe-area-inset-bottom));
+  -webkit-text-size-adjust:100%;
+}
+
+/* ── ヘッダー ── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px 12px;border-bottom:.5px solid var(--border);
+  position:sticky;top:0;background:var(--bg);z-index:20;
+}
+.hdr-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+
+/* ── ボタン ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 16px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;font-family:inherit;
+  cursor:pointer;border:.5px solid var(--border2);
+  background:var(--bg);color:var(--text);
+  -webkit-tap-highlight-color:transparent;transition:opacity .12s;
+}
+.btn:active{opacity:.6;}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--text2);}
+.btn-block{width:100%;padding:14px;font-size:15px;font-weight:600;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{color:var(--red-text);border-color:transparent;background:transparent;}
+
+/* ── 固定ボトムバー ── */
+.bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 18px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  background:var(--bg);border-top:.5px solid var(--border);
+  z-index:20;
+}
+.bottom-bar .btn-primary{
+  background:var(--accent);color:var(--bg);border-color:var(--accent);
+  width:100%;padding:15px;font-size:15px;font-weight:600;border-radius:var(--radius);
+}
+.bottom-bar .btn-primary:disabled{opacity:.4;}
+.bottom-bar-row{display:flex;gap:10px;align-items:center;}
+.bottom-bar-row .btn-primary{flex:1;}
+
+/* ── カード ── */
+.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.section{padding:16px 18px;}
+.gap-col{display:flex;flex-direction:column;gap:12px;}
+
+/* ── ドロップゾーン ── */
+.drop-zone{
+  border:1.5px dashed var(--border2);border-radius:var(--radius);
+  padding:36px 20px;text-align:center;cursor:pointer;
+  background:var(--bg2);transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.drop-zone.dragover{background:var(--blue-bg);border-color:var(--blue);}
+.drop-icon{
+  width:48px;height:48px;margin:0 auto 14px;border-radius:50%;
+  background:var(--bg3);display:flex;align-items:center;
+  justify-content:center;font-size:24px;color:var(--text2);font-weight:300;
+}
+.drop-zone h2{font-size:15px;font-weight:600;margin-bottom:5px;}
+.drop-zone p{font-size:13px;color:var(--text2);}
+
+/* ── ファイルリスト ── */
+.file-item{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;
+  background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-sm);
+}
+.file-num{
+  width:22px;height:22px;border-radius:50%;background:var(--bg3);
+  color:var(--text2);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.file-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-size{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.list-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+
+/* ── 処理中 ── */
+.proc-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-sm);
+}
+.proc-num{
+  width:28px;height:28px;border-radius:50%;background:var(--bg3);
+  font-size:12px;font-weight:600;color:var(--text2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.proc-body{flex:1;min-width:0;}
+.proc-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px;}
+.proc-bar-wrap{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.proc-bar{height:100%;border-radius:2px;background:var(--blue);transition:width .3s;}
+.proc-bar.done{background:var(--green);}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;flex-shrink:0;}
+.badge-wait   {background:var(--bg3);      color:var(--text2);}
+.badge-running{background:var(--blue-bg);  color:var(--blue-text);}
+.badge-done   {background:var(--green-bg); color:var(--green-text);}
+.badge-fail   {background:var(--red-bg);   color:var(--red-text);}
+
+/* ── タブ ── */
+.tabs{
+  display:flex;border-bottom:.5px solid var(--border);
+  padding:0 18px;background:var(--bg);
+  position:sticky;top:57px;z-index:19;
+}
+.tab{
+  padding:11px 16px;font-size:13px;font-weight:500;font-family:inherit;
+  background:transparent;border:none;cursor:pointer;color:var(--text2);
+  border-bottom:2px solid transparent;margin-bottom:-.5px;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab.active{color:var(--text);border-bottom-color:var(--text);}
+
+/* ── フレームカード ── */
+.fc-meta{
+  padding:11px 14px;border-bottom:.5px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.fc-num{
+  width:22px;height:22px;border-radius:50%;background:var(--bg3);
+  color:var(--text2);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.fc-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc-meta-val{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.frame-grid{display:grid;grid-template-columns:1fr 1fr;}
+.frame-col{padding:10px;}
+.frame-col:first-child{border-right:.5px solid var(--border);}
+.frame-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+.thumb{aspect-ratio:16/9;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* ── 接続ペアカード ── */
+.pair-card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border-bottom:.5px solid var(--border);
+}
+.pair-card-title{font-size:13px;font-weight:700;}
+.pair-card-sub{font-size:11px;color:var(--text2);font-family:var(--mono);}
+
+/* フロービジュアル */
+.pair-flow{display:flex;align-items:stretch;padding:12px 14px;gap:0;}
+.pair-clip{flex:1;min-width:0;}
+.pair-clip-label{
+  font-size:10px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;
+}
+.pair-thumb{
+  aspect-ratio:16/9;background:var(--bg3);
+  border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;
+}
+.pair-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pair-clip-name{font-size:11px;color:var(--text2);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* 矢印コネクタ */
+.pair-arrow{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 10px;flex-shrink:0;
+  gap:4px;
+}
+.pair-arrow-line{
+  width:1px;flex:1;background:var(--border2);
+  max-height:32px;
+}
+.pair-arrow-icon{
+  font-size:16px;color:var(--text3);line-height:1;
+  transform:rotate(90deg);
+}
+
+.pair-save-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  padding:10px 14px;border-top:.5px solid var(--border);
+}
+
+/* ── エラー表示 ── */
+.err-msg{font-size:12px;color:var(--red-text);margin-top:4px;}
+.empty{text-align:center;padding:48px 0;font-size:13px;color:var(--text2);}
+
+/* ── ビュー切り替え ── */
+.view{display:none;}
+.view.active{display:block;}
 </style>
 </head>
 <body>
 
-<!-- UPLOAD -->
+<!-- ======= UPLOAD ======= -->
 <div id="view-upload" class="view active">
-  <div class="header">
-    <div><h1>動画フレーム抽出</h1><p>最大4本 · first / last フレームを抽出</p></div>
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">フレーム抽出</div>
+      <div class="hdr-sub">動画の first / last フレームを取り出す</div>
+    </div>
   </div>
   <div class="section gap-col">
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <div class="drop-icon">+</div>
-      <h2>タップで動画を選択</h2>
-      <p>mp4 / mov 対応 · 最大4本</p>
+      <h2>タップして動画を選択</h2>
+      <p>mp4 / mov · 最大10本</p>
       <input type="file" id="file-input" accept="video/mp4,video/quicktime,.mp4,.mov"
              multiple style="display:none" onchange="onFileInput(this.files)">
     </div>
     <div id="file-list-wrap" style="display:none">
-      <p class="label">追加済み動画</p>
+      <p class="list-label">追加済み動画</p>
       <div id="file-list" class="gap-col"></div>
     </div>
-    <button id="process-btn" class="btn btn-primary btn-block" style="display:none"
-            onclick="startProcessing()">動画を処理する</button>
+  </div>
+  <div class="bottom-bar" id="upload-bar" style="display:none">
+    <button class="btn btn-primary" onclick="startProcessing()" id="process-btn">動画を処理する</button>
   </div>
 </div>
 
-<!-- PROCESSING -->
+<!-- ======= PROCESSING ======= -->
 <div id="view-processing" class="view">
-  <div class="header">
-    <div><h1>処理中</h1><p>フレームを抽出しています...</p></div>
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">処理中</div>
+      <div class="hdr-sub" id="proc-sub">準備中...</div>
+    </div>
   </div>
   <div class="section gap-col" id="processing-list"></div>
-  <div class="section"><div id="debug-log"></div></div>
 </div>
 
-<!-- RESULTS -->
+<!-- ======= RESULTS ======= -->
 <div id="view-results" class="view">
-  <div class="header">
-    <div><h1>抽出完了</h1><p id="results-sub"></p></div>
-    <button class="btn btn-sm" onclick="reset()">やり直す</button>
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">抽出完了</div>
+      <div class="hdr-sub" id="results-sub"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="reset()">やり直す</button>
   </div>
   <div class="tabs">
-    <button class="tab active" id="tab-frames" onclick="switchTab('frames')">フレーム一覧</button>
-    <button class="tab" id="tab-pairs" onclick="switchTab('pairs')">接続ペア</button>
+    <button class="tab active" id="tab-pairs"  onclick="switchTab('pairs')">接続ペア</button>
+    <button class="tab"        id="tab-frames" onclick="switchTab('frames')">フレーム一覧</button>
   </div>
-  <div class="section gap-col" id="frames-content"></div>
-  <div class="section gap-col" id="pairs-content" style="display:none"></div>
+  <div class="section gap-col" id="pairs-content"></div>
+  <div class="section gap-col" id="frames-content" style="display:none"></div>
+
+  <!-- まとめて保存：固定ボトムバー -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-row">
+      <button class="btn btn-primary" id="dl-all-btn" onclick="downloadAll()">まとめて保存 (ZIP)</button>
+    </div>
+  </div>
 </div>
 
 <script>
 'use strict';
 let files=[], results=[];
 
-// デバッグログ
-function log(msg){
-  const el=document.getElementById('debug-log');
-  el.style.display='block';
-  el.textContent+=msg+'\n';
-  el.scrollTop=el.scrollHeight;
-}
-
-// Drag & drop
+// ── ドラッグ&ドロップ ──
 const dz=document.getElementById('drop-zone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');addFiles(e.dataTransfer.files);});
 
-// ユーティリティ
+// ── ユーティリティ ──
 const fmtSize=b=>b<1e6?(b/1e3).toFixed(0)+'KB':(b/1e6).toFixed(1)+'MB';
-const fmtDur=s=>s<60?s.toFixed(2)+'s':Math.floor(s/60)+'m'+(s%60).toFixed(1)+'s';
+const fmtDur=s=>s<60?s.toFixed(1)+'s':Math.floor(s/60)+'m'+(s%60).toFixed(1)+'s';
 const fmtRes=(w,h)=>w+'×'+h;
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const basename=n=>n.replace(/\.[^/.]+$/,'');
 
 function onFileInput(fl){addFiles(fl);}
 
 function addFiles(fl){
   const v=Array.from(fl).filter(f=>f.type.startsWith('video/')||/\.(mp4|mov)$/i.test(f.name));
   if(!v.length){alert('対応形式: mp4, mov');return;}
-  files=[...files,...v].slice(0,4);
+  files=[...files,...v].slice(0,10);
   renderFileList();
 }
 
 function removeFile(i){
-  files.splice(i,1);renderFileList();
+  files.splice(i,1);
   document.getElementById('file-input').value='';
+  renderFileList();
 }
 
 function renderFileList(){
   const wrap=document.getElementById('file-list-wrap');
   const list=document.getElementById('file-list');
-  const btn=document.getElementById('process-btn');
-  if(!files.length){wrap.style.display='none';btn.style.display='none';return;}
-  wrap.style.display='block';btn.style.display='block';
-  btn.textContent=files.length+'本の動画を処理する';
+  const bar =document.getElementById('upload-bar');
+  const btn =document.getElementById('process-btn');
+  if(!files.length){wrap.style.display='none';bar.style.display='none';return;}
+  wrap.style.display='block';bar.style.display='block';
+  btn.textContent=files.length+'本を処理する';
   list.innerHTML='';
   files.forEach((f,i)=>{
     const el=document.createElement('div');
     el.className='file-item';
-    el.innerHTML=`<span class="file-num">${i+1}</span>
+    el.innerHTML=`
+      <span class="file-num">${i+1}</span>
       <span class="file-name">${esc(f.name)}</span>
       <span class="file-size">${fmtSize(f.size)}</span>
       <button class="btn btn-danger btn-sm" onclick="removeFile(${i})">×</button>`;
@@ -234,138 +338,110 @@ function renderFileList(){
   });
 }
 
-// ── シーク & キャプチャ (タイムアウトフォールバック付き) ──
-function seekAndCapture(video, canvas, ctx, time, ms){
+// ── フレーム抽出 ──
+function seekAndCapture(video,canvas,ctx,time,ms){
   return new Promise(resolve=>{
     let done=false;
-    const finish=()=>{
-      if(done)return; done=true;
-      ctx.drawImage(video,0,0);
-      resolve(canvas.toDataURL('image/jpeg',0.85));
-    };
-    const timer=setTimeout(()=>{
-      log('  ⚠ seeked タイムアウト('+time.toFixed(2)+'s) → 強制キャプチャ');
-      finish();
-    },ms);
-    video.addEventListener('seeked',function h(){
-      clearTimeout(timer);
-      video.removeEventListener('seeked',h);
-      finish();
-    });
+    const finish=()=>{if(done)return;done=true;ctx.drawImage(video,0,0);resolve(canvas.toDataURL('image/jpeg',.85));};
+    const timer=setTimeout(finish,ms);
+    video.addEventListener('seeked',function h(){clearTimeout(timer);video.removeEventListener('seeked',h);finish();});
     video.currentTime=time;
   });
 }
 
-// ── フレーム抽出本体 ──
-function extractFrames(file, onProgress, onStatus){
+function extractFrames(file,onProgress){
   return new Promise((resolve,reject)=>{
     const video=document.createElement('video');
     const url=URL.createObjectURL(file);
     const canvas=document.createElement('canvas');
     const ctx=canvas.getContext('2d');
-
-    video.muted=true;
-    video.playsInline=true;
-    video.preload='auto';
-
-    video.addEventListener('error',()=>{
-      URL.revokeObjectURL(url);
-      const code=video.error?video.error.code:'?';
-      reject(new Error('動画エラー(code='+code+'): '+file.name));
-    });
-
+    video.muted=true;video.playsInline=true;video.preload='auto';
+    video.addEventListener('error',()=>{URL.revokeObjectURL(url);reject(new Error('読み込み失敗: '+file.name));});
     video.addEventListener('loadedmetadata',async()=>{
       const{duration:dur,videoWidth:w,videoHeight:h}=video;
-      log('  loadedmetadata: '+w+'×'+h+', '+fmtDur(dur));
-      canvas.width=w; canvas.height=h;
-      onProgress(0.2); onStatus('デコーダー準備中...');
-
-      // iOS Safari: muted動画はユーザー操作なしでplay()可
-      try{
-        await video.play();
-        video.pause();
-        log('  play/pause OK');
-      }catch(e){
-        log('  play()スキップ: '+e.message);
-      }
-
-      onProgress(0.3); onStatus('first frame 取得中...');
-      log('  → seek 0.01s');
-      const firstFrame=await seekAndCapture(video,canvas,ctx,0.01,5000);
-      log('  first frame OK');
-      onProgress(0.65);
-
-      onStatus('last frame 取得中...');
-      const lastTime=Math.max(0,dur-0.15);
-      log('  → seek '+lastTime.toFixed(2)+'s');
-      const lastFrame=await seekAndCapture(video,canvas,ctx,lastTime,5000);
-      log('  last frame OK');
-
+      canvas.width=w;canvas.height=h;
+      onProgress(.2);
+      try{await video.play();video.pause();}catch(_){}
+      onProgress(.35);
+      const firstFrame=await seekAndCapture(video,canvas,ctx,.01,5000);
+      onProgress(.68);
+      const lastFrame=await seekAndCapture(video,canvas,ctx,Math.max(0,dur-.15),5000);
       URL.revokeObjectURL(url);
-      onProgress(1); onStatus('完了');
+      onProgress(1);
       resolve({name:file.name,dur,w,h,firstFrame,lastFrame,size:file.size});
     });
-
-    video.src=url;
-    video.load();
+    video.src=url;video.load();
   });
 }
 
 // ── ダウンロード ──
 function dl(dataUrl,name){
   const a=document.createElement('a');
-  a.href=dataUrl; a.download=name;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  a.href=dataUrl;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── まとめてダウンロード (ZIP) ──
+async function downloadAll(){
+  const valid=results.filter(Boolean);
+  if(!valid.length)return;
+  const btn=document.getElementById('dl-all-btn');
+  btn.textContent='作成中...';btn.disabled=true;
+  try{
+    const zip=new JSZip();
+    valid.forEach(r=>{
+      const idx=results.indexOf(r)+1;
+      zip.file(`clip${idx}_first.jpg`,r.firstFrame.split(',')[1],{base64:true});
+      zip.file(`clip${idx}_last.jpg`, r.lastFrame.split(',')[1], {base64:true});
+    });
+    const blob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='frames.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(e){alert('ZIP作成失敗: '+e.message);}
+  finally{btn.textContent='まとめて保存 (ZIP)';btn.disabled=false;}
 }
 
 // ── 処理開始 ──
 async function startProcessing(){
   showView('processing');
-  document.getElementById('debug-log').textContent='';
-  document.getElementById('debug-log').style.display='none';
   const listEl=document.getElementById('processing-list');
-  listEl.innerHTML=''; results=[];
+  listEl.innerHTML='';results=[];
 
+  // カードを先に全部作る
   files.forEach((f,i)=>{
-    const card=document.createElement('div');
-    card.className='card'; card.style.padding='12px 14px';
-    card.innerHTML=`
-      <div class="status-row">
-        <span class="status-name">${esc(f.name)}</span>
-        <span class="badge badge-gray" id="badge-${i}">待機中</span>
+    const el=document.createElement('div');
+    el.className='proc-item';
+    el.innerHTML=`
+      <div class="proc-num">${i+1}</div>
+      <div class="proc-body">
+        <div class="proc-name">${esc(f.name)}</div>
+        <div class="proc-bar-wrap"><div class="proc-bar" id="pb-${i}" style="width:0%"></div></div>
+        <p class="err-msg" id="err-${i}" style="display:none"></p>
       </div>
-      <div class="progress-wrap" id="prog-wrap-${i}">
-        <div class="progress-bar" id="prog-${i}" style="width:0%"></div>
-      </div>
-      <p class="status-detail" id="detail-${i}"></p>
-      <p class="err-msg" id="err-${i}" style="display:none"></p>`;
-    listEl.appendChild(card);
+      <span class="badge badge-wait" id="bdg-${i}">待機</span>`;
+    listEl.appendChild(el);
   });
 
-  const setProg=(i,p)=>document.getElementById('prog-'+i).style.width=Math.round(p*100)+'%';
-  const setStat=(i,t)=>document.getElementById('detail-'+i).textContent=t;
-  const setBadge=(i,cls,txt)=>{
-    const b=document.getElementById('badge-'+i);
-    b.className='badge '+cls; b.textContent=txt;
-  };
+  const setProg=(i,p)=>document.getElementById('pb-'+i).style.width=Math.round(p*100)+'%';
+  const setBadge=(i,cls,t)=>{const b=document.getElementById('bdg-'+i);b.className='badge '+cls;b.textContent=t;};
 
   for(let i=0;i<files.length;i++){
-    setBadge(i,'badge-info','処理中...');
-    log('[clip'+(i+1)+'] '+files[i].name+' ('+fmtSize(files[i].size)+')');
+    document.getElementById('proc-sub').textContent=(i+1)+' / '+files.length+' 処理中';
+    setBadge(i,'badge-running','処理中');
     try{
-      const r=await extractFrames(files[i],p=>setProg(i,p),s=>setStat(i,s));
+      const r=await extractFrames(files[i],p=>setProg(i,p));
       results.push(r);
-      setBadge(i,'badge-success','完了');
-      document.getElementById('prog-'+i).classList.add('done');
-      setProg(i,1); setStat(i,fmtDur(r.dur)+' · '+fmtRes(r.w,r.h));
-      log('[clip'+(i+1)+'] 完了');
+      setBadge(i,'badge-done','完了');
+      document.getElementById('pb-'+i).classList.add('done');
+      setProg(i,1);
     }catch(err){
       results.push(null);
-      setBadge(i,'badge-danger','失敗');
-      document.getElementById('prog-wrap-'+i).style.display='none';
+      setBadge(i,'badge-fail','失敗');
       const e=document.getElementById('err-'+i);
-      e.style.display='block'; e.textContent=err.message;
-      log('[clip'+(i+1)+'] エラー: '+err.message);
+      e.style.display='block';e.textContent=err.message;
     }
   }
   buildResults();
@@ -375,100 +451,111 @@ async function startProcessing(){
 // ── 結果構築 ──
 function buildResults(){
   const valid=results.filter(Boolean).length;
-  document.getElementById('results-sub').textContent=valid+'本 / '+results.length+'本 成功';
+  document.getElementById('results-sub').textContent=valid+'本 成功 / '+results.length+'本';
 
+  // ── 接続ペアタブ ──
+  const pc=document.getElementById('pairs-content');
+  pc.innerHTML='';
+  const pairs=[];
+  for(let i=0;i<results.length-1;i++){
+    if(results[i]&&results[i+1])pairs.push({A:results[i],B:results[i+1],ai:i,bi:i+1});
+  }
+  document.getElementById('tab-pairs').textContent='接続ペア'+(pairs.length?'  '+pairs.length:'');
+
+  if(!pairs.length){
+    pc.innerHTML='<p class="empty">接続ペアを表示するには<br>成功した動画が2本以上必要です</p>';
+  }else{
+    pairs.forEach(({A,B,ai,bi})=>{
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`
+        <div class="pair-card-header">
+          <div>
+            <div class="pair-card-title">clip ${ai+1} &rarr; clip ${bi+1}</div>
+            <div class="pair-card-sub">${esc(basename(A.name))} &rarr; ${esc(basename(B.name))}</div>
+          </div>
+        </div>
+        <div class="pair-flow">
+          <div class="pair-clip">
+            <div class="pair-clip-label">clip ${ai+1} &nbsp;last</div>
+            <div class="pair-thumb"><img src="${A.lastFrame}" alt="" loading="lazy"></div>
+            <div class="pair-clip-name">${esc(basename(A.name))}</div>
+          </div>
+          <div class="pair-arrow">
+            <div class="pair-arrow-line"></div>
+            <div class="pair-arrow-icon">&#8594;</div>
+            <div class="pair-arrow-line"></div>
+          </div>
+          <div class="pair-clip">
+            <div class="pair-clip-label">clip ${bi+1} &nbsp;first</div>
+            <div class="pair-thumb"><img src="${B.firstFrame}" alt="" loading="lazy"></div>
+            <div class="pair-clip-name">${esc(basename(B.name))}</div>
+          </div>
+        </div>
+        <div class="pair-save-row">
+          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${ai}].lastFrame,'clip${ai+1}_last.jpg')">clip${ai+1}_last 保存</button>
+          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${bi}].firstFrame,'clip${bi+1}_first.jpg')">clip${bi+1}_first 保存</button>
+        </div>`;
+      pc.appendChild(card);
+    });
+  }
+
+  // ── フレーム一覧タブ ──
   const fc=document.getElementById('frames-content');
   fc.innerHTML='';
   results.forEach((r,i)=>{
     if(!r){
       const el=document.createElement('div');
-      el.className='card'; el.style.cssText='padding:14px;opacity:0.5';
-      el.innerHTML=`<p style="font-size:13px;color:var(--red)">clip${i+1} — 抽出失敗</p>`;
-      fc.appendChild(el); return;
+      el.className='card';el.style.cssText='padding:14px;opacity:.5';
+      el.innerHTML=`<p style="font-size:13px;color:var(--red-text)">clip${i+1} — 抽出失敗</p>`;
+      fc.appendChild(el);return;
     }
     const card=document.createElement('div');
     card.className='card';
     card.innerHTML=`
-      <div class="frame-card-meta">
-        <span class="file-num">${i+1}</span>
-        <span class="file-name">${esc(r.name)}</span>
-        <span class="meta-val" style="margin-left:auto">${fmtDur(r.dur)}</span>
-        <span class="meta-val" style="margin-left:8px">${fmtRes(r.w,r.h)}</span>
+      <div class="fc-meta">
+        <span class="fc-num">${i+1}</span>
+        <span class="fc-name">${esc(r.name)}</span>
+        <span class="fc-meta-val" style="margin-left:auto">${fmtDur(r.dur)}</span>
+        <span class="fc-meta-val" style="margin-left:8px">${fmtRes(r.w,r.h)}</span>
       </div>
       <div class="frame-grid">
         <div class="frame-col">
-          <p class="label">first frame</p>
-          <div class="thumb"><img src="${r.firstFrame}" alt="first" loading="lazy"></div>
+          <div class="frame-label">first frame</div>
+          <div class="thumb"><img src="${r.firstFrame}" alt="" loading="lazy"></div>
           <button class="btn btn-sm" style="width:100%" onclick="dl(results[${i}].firstFrame,'clip${i+1}_first.jpg')">保存</button>
         </div>
         <div class="frame-col">
-          <p class="label">last frame</p>
-          <div class="thumb"><img src="${r.lastFrame}" alt="last" loading="lazy"></div>
+          <div class="frame-label">last frame</div>
+          <div class="thumb"><img src="${r.lastFrame}" alt="" loading="lazy"></div>
           <button class="btn btn-sm" style="width:100%" onclick="dl(results[${i}].lastFrame,'clip${i+1}_last.jpg')">保存</button>
         </div>
       </div>`;
     fc.appendChild(card);
   });
-
-  const pc=document.getElementById('pairs-content');
-  pc.innerHTML='';
-  const pairs=[];
-  for(let i=0;i<results.length-1;i++){
-    if(results[i]&&results[i+1]) pairs.push({from:results[i],to:results[i+1],fi:i,ti:i+1});
-  }
-  document.getElementById('tab-pairs').textContent='接続ペア ('+pairs.length+')';
-  if(!pairs.length){
-    pc.innerHTML='<p class="empty">接続ペアには2本以上の動画が必要です</p>'; return;
-  }
-  pairs.forEach(({from,to,fi,ti})=>{
-    const card=document.createElement('div');
-    card.className='card';
-    card.innerHTML=`
-      <div class="pair-header">
-        <strong>clip${fi+1} → clip${ti+1}</strong>
-        <span>${esc(from.name.replace(/\.[^/.]+$/,''))} → ${esc(to.name.replace(/\.[^/.]+$/,''))}</span>
-      </div>
-      <div class="frame-grid">
-        <div class="frame-col">
-          <p class="label">clip${fi+1} last</p>
-          <div class="thumb"><img src="${from.lastFrame}" alt="" loading="lazy"></div>
-          <span class="meta-val">${fmtDur(from.dur)}</span>
-        </div>
-        <div class="frame-col">
-          <p class="label">clip${ti+1} first</p>
-          <div class="thumb"><img src="${to.firstFrame}" alt="" loading="lazy"></div>
-          <span class="meta-val">${fmtDur(to.dur)}</span>
-        </div>
-      </div>
-      <div class="pair-actions">
-        <button class="btn btn-sm" onclick="dl(results[${fi}].lastFrame,'clip${fi+1}_last.jpg')">clip${fi+1}_last 保存</button>
-        <button class="btn btn-sm" onclick="dl(results[${ti}].firstFrame,'clip${ti+1}_first.jpg')">clip${ti+1}_first 保存</button>
-      </div>`;
-    pc.appendChild(card);
-  });
 }
 
+// ── タブ切り替え ──
 function switchTab(t){
+  document.getElementById('pairs-content').style.display =t==='pairs' ?'flex':'none';
   document.getElementById('frames-content').style.display=t==='frames'?'flex':'none';
-  document.getElementById('pairs-content').style.display=t==='pairs'?'flex':'none';
+  document.getElementById('tab-pairs').classList.toggle('active', t==='pairs');
   document.getElementById('tab-frames').classList.toggle('active',t==='frames');
-  document.getElementById('tab-pairs').classList.toggle('active',t==='pairs');
 }
 
+// ── ビュー切り替え ──
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
 }
 
+// ── リセット ──
 function reset(){
   files=[];results=[];
   document.getElementById('file-list').innerHTML='';
   document.getElementById('file-list-wrap').style.display='none';
-  document.getElementById('process-btn').style.display='none';
+  document.getElementById('upload-bar').style.display='none';
   document.getElementById('file-input').value='';
-  document.getElementById('debug-log').textContent='';
-  document.getElementById('debug-log').style.display='none';
-  switchTab('frames');
   showView('upload');
 }
 </script>
