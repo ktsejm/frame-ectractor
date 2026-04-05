@@ -5,239 +5,225 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="フレーム抽出">
-<title>動画フレーム抽出</title>
+<meta name="apple-mobile-web-app-title" content="Frame">
+<title>Frame Extractor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
 :root{
-  --bg:#fff;--bg2:#f7f7f6;--bg3:#eeedea;
-  --text:#111;--text2:#777;--text3:#aaa;
-  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);
-  --radius:14px;--radius-sm:9px;
-  --blue:#1d6ef5;--blue-bg:#eef3fe;--blue-text:#1251c0;
-  --green:#15a34a;--green-bg:#edfaf3;--green-text:#0d7a38;
-  --red:#e03131;--red-bg:#fff0f0;--red-text:#b91c1c;
-  --accent:#111;
-  --mono:'SF Mono','Menlo','Monaco',monospace;
-  --bottom-bar:72px;
+  --bg:     #f9f9f8;
+  --surface:#ffffff;
+  --line:   #e8e8e6;
+  --line2:  #d0d0ce;
+  --t1:     #111110;
+  --t2:     #888884;
+  --t3:     #b8b8b4;
+  --accent: #111110;
+  --r:      4px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
 }
 @media(prefers-color-scheme:dark){
   :root{
-    --bg:#141414;--bg2:#1e1e1e;--bg3:#2a2a2a;
-    --text:#f2f2f2;--text2:#888;--text3:#555;
-    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);
-    --blue:#5b9cf6;--blue-bg:#1a2a4a;--blue-text:#93bbfa;
-    --green:#34d36a;--green-bg:#0d2a1a;--green-text:#6eefaa;
-    --red:#f87171;--red-bg:#2a1010;--red-text:#fca5a5;
-    --accent:#f2f2f2;
+    --bg:     #111110;
+    --surface:#1c1c1b;
+    --line:   #2a2a28;
+    --line2:  #3a3a38;
+    --t1:     #f0f0ee;
+    --t2:     #888884;
+    --t3:     #555552;
+    --accent: #f0f0ee;
   }
 }
+
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
-  background:var(--bg);color:var(--text);
+  font-size:13px;line-height:1.5;
+  background:var(--bg);color:var(--t1);
   min-height:100svh;
-  padding-bottom:calc(var(--bottom-bar) + env(safe-area-inset-bottom));
+  padding-bottom:calc(60px + var(--safe-b));
   -webkit-text-size-adjust:100%;
 }
 
-/* ── ヘッダー ── */
-.hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px 12px;border-bottom:.5px solid var(--border);
-  position:sticky;top:0;background:var(--bg);z-index:20;
-}
-.hdr-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
-.hdr-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+/* ── typography ── */
+.t-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);}
+.t-mono {font-size:11px;font-family:'SF Mono','Menlo',monospace;color:var(--t3);}
 
-/* ── ボタン ── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  padding:8px 16px;border-radius:var(--radius-sm);
-  font-size:13px;font-weight:500;font-family:inherit;
-  cursor:pointer;border:.5px solid var(--border2);
-  background:var(--bg);color:var(--text);
-  -webkit-tap-highlight-color:transparent;transition:opacity .12s;
-}
-.btn:active{opacity:.6;}
-.btn-ghost{border-color:transparent;background:transparent;color:var(--text2);}
-.btn-block{width:100%;padding:14px;font-size:15px;font-weight:600;}
-.btn-sm{padding:6px 12px;font-size:12px;}
-.btn-danger{color:var(--red-text);border-color:transparent;background:transparent;}
-
-/* ── 固定ボトムバー ── */
-.bottom-bar{
-  position:fixed;bottom:0;left:0;right:0;
-  padding:12px 18px;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom));
-  background:var(--bg);border-top:.5px solid var(--border);
-  z-index:20;
-}
-.bottom-bar .btn-primary{
-  background:var(--accent);color:var(--bg);border-color:var(--accent);
-  width:100%;padding:15px;font-size:15px;font-weight:600;border-radius:var(--radius);
-}
-.bottom-bar .btn-primary:disabled{opacity:.4;}
-.bottom-bar-row{display:flex;gap:10px;align-items:center;}
-.bottom-bar-row .btn-primary{flex:1;}
-
-/* ── カード ── */
-.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.section{padding:16px 18px;}
-.gap-col{display:flex;flex-direction:column;gap:12px;}
-
-/* ── ドロップゾーン ── */
-.drop-zone{
-  border:1.5px dashed var(--border2);border-radius:var(--radius);
-  padding:36px 20px;text-align:center;cursor:pointer;
-  background:var(--bg2);transition:all .15s;
-  -webkit-tap-highlight-color:transparent;
-}
-.drop-zone.dragover{background:var(--blue-bg);border-color:var(--blue);}
-.drop-icon{
-  width:48px;height:48px;margin:0 auto 14px;border-radius:50%;
-  background:var(--bg3);display:flex;align-items:center;
-  justify-content:center;font-size:24px;color:var(--text2);font-weight:300;
-}
-.drop-zone h2{font-size:15px;font-weight:600;margin-bottom:5px;}
-.drop-zone p{font-size:13px;color:var(--text2);}
-
-/* ── ファイルリスト ── */
-.file-item{
-  display:flex;align-items:center;gap:10px;padding:11px 12px;
-  background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-sm);
-}
-.file-num{
-  width:22px;height:22px;border-radius:50%;background:var(--bg3);
-  color:var(--text2);font-size:11px;font-weight:600;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.file-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.file-size{font-size:11px;color:var(--text3);font-family:var(--mono);}
-.list-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-
-/* ── 処理中 ── */
-.proc-item{
-  display:flex;align-items:center;gap:12px;
-  padding:12px 14px;
-  background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-sm);
-}
-.proc-num{
-  width:28px;height:28px;border-radius:50%;background:var(--bg3);
-  font-size:12px;font-weight:600;color:var(--text2);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.proc-body{flex:1;min-width:0;}
-.proc-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px;}
-.proc-bar-wrap{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
-.proc-bar{height:100%;border-radius:2px;background:var(--blue);transition:width .3s;}
-.proc-bar.done{background:var(--green);}
-.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;flex-shrink:0;}
-.badge-wait   {background:var(--bg3);      color:var(--text2);}
-.badge-running{background:var(--blue-bg);  color:var(--blue-text);}
-.badge-done   {background:var(--green-bg); color:var(--green-text);}
-.badge-fail   {background:var(--red-bg);   color:var(--red-text);}
-
-/* ── タブ ── */
-.tabs{
-  display:flex;border-bottom:.5px solid var(--border);
-  padding:0 18px;background:var(--bg);
-  position:sticky;top:57px;z-index:19;
-}
-.tab{
-  padding:11px 16px;font-size:13px;font-weight:500;font-family:inherit;
-  background:transparent;border:none;cursor:pointer;color:var(--text2);
-  border-bottom:2px solid transparent;margin-bottom:-.5px;
-  -webkit-tap-highlight-color:transparent;
-}
-.tab.active{color:var(--text);border-bottom-color:var(--text);}
-
-/* ── フレームカード ── */
-.fc-meta{
-  padding:11px 14px;border-bottom:.5px solid var(--border);
-  display:flex;align-items:center;gap:8px;
-}
-.fc-num{
-  width:22px;height:22px;border-radius:50%;background:var(--bg3);
-  color:var(--text2);font-size:11px;font-weight:600;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.fc-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.fc-meta-val{font-size:11px;color:var(--text3);font-family:var(--mono);}
-.frame-grid{display:grid;grid-template-columns:1fr 1fr;}
-.frame-col{padding:10px;}
-.frame-col:first-child{border-right:.5px solid var(--border);}
-.frame-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
-.thumb{aspect-ratio:16/9;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;width:min(100%,23vw);}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-
-/* ── 接続ペアカード ── */
-.pair-card-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:11px 14px;border-bottom:.5px solid var(--border);
-}
-.pair-card-title{font-size:13px;font-weight:700;}
-.pair-card-sub{font-size:11px;color:var(--text2);font-family:var(--mono);}
-
-/* フロービジュアル */
-.pair-flow{display:flex;align-items:stretch;padding:12px 14px;gap:0;}
-.pair-clip{flex:1;min-width:0;}
-.pair-clip-label{
-  font-size:10px;font-weight:600;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;
-}
-.pair-thumb{
-  aspect-ratio:16/9;background:var(--bg3);
-  border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;
-  width:min(100%,23vw);
-}
-.pair-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pair-clip-name{font-size:11px;color:var(--text2);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-/* 矢印コネクタ */
-.pair-arrow{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:0 10px;flex-shrink:0;
-  gap:4px;
-}
-.pair-arrow-line{
-  width:1px;flex:1;background:var(--border2);
-  max-height:32px;
-}
-.pair-arrow-icon{
-  font-size:16px;color:var(--text3);line-height:1;
-  transform:rotate(90deg);
-}
-
-.pair-save-row{
-  display:grid;grid-template-columns:1fr 1fr;gap:8px;
-  padding:10px 14px;border-top:.5px solid var(--border);
-}
-
-/* ── 品質セレクター ── */
-.quality-selector{display:flex;gap:6px;}
-.q-btn{
-  flex:1;padding:9px 6px;border-radius:var(--radius-sm);
-  font-size:12px;font-weight:500;font-family:inherit;
-  cursor:pointer;border:.5px solid var(--border2);
-  background:var(--bg2);color:var(--text2);
-  text-align:center;line-height:1.3;
-  -webkit-tap-highlight-color:transparent;transition:all .12s;
-}
-.q-btn span{display:block;font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);}
-.q-btn.active{background:var(--accent);color:var(--bg);border-color:var(--accent);}
-.q-btn.active span{color:rgba(255,255,255,.6);}
-@media(prefers-color-scheme:dark){
-  .q-btn.active span{color:rgba(0,0,0,.5);}
-}
-
-/* ── エラー表示 ── */
-.err-msg{font-size:12px;color:var(--red-text);margin-top:4px;}
-.empty{text-align:center;padding:48px 0;font-size:13px;color:var(--text2);}
-
-/* ── ビュー切り替え ── */
+/* ── layout ── */
 .view{display:none;}
 .view.active{display:block;}
+
+.hdr{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--bg);z-index:20;
+  display:flex;align-items:baseline;justify-content:space-between;
+}
+.hdr-title{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+.hdr-sub{font-size:11px;color:var(--t2);}
+
+/* ── divider list layout ── */
+.list{border-top:1px solid var(--line);}
+.list-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+}
+
+/* ── buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:6px 12px;border-radius:var(--r);
+  font-size:12px;font-weight:500;font-family:inherit;
+  cursor:pointer;border:1px solid var(--line2);
+  background:var(--surface);color:var(--t1);
+  -webkit-tap-highlight-color:transparent;
+  white-space:nowrap;
+}
+.btn:active{opacity:.55;}
+.btn-fill{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.btn-fill:disabled{opacity:.35;}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--t2);}
+.btn-del{border-color:transparent;background:transparent;color:var(--t3);padding:4px 8px;}
+
+/* ── drop zone ── */
+.drop{
+  margin:16px;
+  border:1px dashed var(--line2);
+  border-radius:var(--r);
+  padding:40px 20px;
+  text-align:center;
+  cursor:pointer;
+  background:var(--surface);
+  -webkit-tap-highlight-color:transparent;
+}
+.drop.over{border-color:var(--t1);}
+.drop-main{font-size:13px;font-weight:500;margin-bottom:4px;}
+.drop-sub{font-size:11px;color:var(--t2);}
+
+/* ── section ── */
+.sec{padding:0 16px;}
+.sec+.sec{padding-top:16px;}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+
+/* ── quality toggle ── */
+.q-row{display:flex;border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;}
+.q-opt{
+  flex:1;padding:7px 4px;text-align:center;cursor:pointer;
+  font-size:11px;font-weight:500;font-family:inherit;
+  background:var(--surface);color:var(--t2);border:none;
+  border-right:1px solid var(--line2);
+  -webkit-tap-highlight-color:transparent;
+  line-height:1.3;
+}
+.q-opt:last-child{border-right:none;}
+.q-opt.on{background:var(--accent);color:var(--bg);}
+.q-opt small{display:block;font-size:10px;opacity:.65;margin-top:1px;}
+
+/* ── bottom bar ── */
+.btm{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:10px 16px;
+  padding-bottom:calc(10px + var(--safe-b));
+  background:var(--bg);
+  border-top:1px solid var(--line);
+  z-index:20;
+}
+.btm-row{display:flex;gap:8px;}
+.btm .btn-fill{flex:1;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);}
+
+/* ── progress ── */
+.prog-wrap{height:2px;background:var(--line);border-radius:1px;overflow:hidden;margin-top:6px;}
+.prog-bar{height:100%;border-radius:1px;background:var(--t1);transition:width .25s;}
+.prog-bar.done{background:var(--t1);}
+
+/* ── status dot ── */
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-wait{background:var(--t3);}
+.dot-run {background:var(--t1);}
+.dot-ok  {background:var(--t1);}
+.dot-err {background:#e03131;}
+
+/* ── tabs ── */
+.tabs{
+  display:flex;gap:0;
+  border-bottom:1px solid var(--line);
+  background:var(--bg);
+  position:sticky;top:53px;z-index:19;
+  padding:0 16px;
+}
+.tab{
+  padding:9px 0;margin-right:20px;
+  font-size:12px;font-weight:500;font-family:inherit;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--t2);border-bottom:1.5px solid transparent;
+  margin-bottom:-1px;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab.on{color:var(--t1);border-bottom-color:var(--t1);}
+
+/* ── frame cards ── */
+.frame-card{background:var(--surface);border-top:1px solid var(--line);}
+.frame-card+.frame-card{border-top:none;}
+.fc-head{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 16px;
+  border-bottom:1px solid var(--line);
+}
+.fc-idx{font-size:11px;color:var(--t2);font-weight:600;flex-shrink:0;}
+.fc-name{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc-grid{display:grid;grid-template-columns:1fr 1fr;}
+.fc-col{padding:10px 12px;}
+.fc-col:first-child{border-right:1px solid var(--line);}
+.thumb{
+  aspect-ratio:16/9;background:var(--line);
+  border-radius:2px;overflow:hidden;
+  margin-bottom:6px;
+  width:min(100%,22vw);
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* ── pair cards ── */
+.pair-card{background:var(--surface);border-top:1px solid var(--line);}
+.pair-card+.pair-card{border-top:none;}
+.pc-head{
+  display:flex;align-items:center;gap:6px;
+  padding:9px 16px;border-bottom:1px solid var(--line);
+}
+.pc-title{font-size:12px;font-weight:600;}
+.pc-sub{font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pc-flow{display:flex;align-items:flex-start;padding:10px 12px;gap:0;}
+.pc-clip{flex:1;min-width:0;}
+.pc-clabel{font-size:10px;font-weight:600;color:var(--t2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.pc-cname{font-size:10px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Menlo',monospace;}
+.pair-thumb{
+  aspect-ratio:16/9;background:var(--line);
+  border-radius:2px;overflow:hidden;
+  margin-bottom:4px;
+  width:min(100%,22vw);
+}
+.pair-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pc-arrow{
+  display:flex;align-items:center;
+  padding:0 8px;flex-shrink:0;
+  /* vertically center to the thumbnail */
+  padding-top:calc(22vw * 9/16 / 2 - 6px);
+}
+.pc-arrow-icon{font-size:12px;color:var(--t3);}
+.pc-saves{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  padding:8px 12px;border-top:1px solid var(--line);
+}
+
+/* ── empty ── */
+.empty{padding:48px 16px;text-align:center;font-size:12px;color:var(--t2);}
+
+/* ── error ── */
+.err{font-size:11px;color:#e03131;margin-top:4px;}
+
+/* ── results wrapper ── */
+.results-block{margin-top:0;}
 </style>
 </head>
 <body>
@@ -245,74 +231,68 @@ body{
 <!-- ======= UPLOAD ======= -->
 <div id="view-upload" class="view active">
   <div class="hdr">
-    <div>
-      <div class="hdr-title">フレーム抽出</div>
-      <div class="hdr-sub">動画の first / last フレームを取り出す</div>
-    </div>
+    <span class="hdr-title">Frame Extractor</span>
+    <span class="hdr-sub">first / last フレームを抽出</span>
   </div>
-  <div class="section gap-col">
-    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <div class="drop-icon">+</div>
-      <h2>タップして動画を選択</h2>
-      <p>mp4 / mov · 最大10本</p>
-      <input type="file" id="file-input" accept="video/mp4,video/quicktime,.mp4,.mov"
-             multiple style="display:none" onchange="onFileInput(this.files)">
-    </div>
-    <div id="file-list-wrap" style="display:none">
-      <p class="list-label">追加済み動画</p>
-      <div id="file-list" class="gap-col"></div>
-    </div>
-    <div id="quality-wrap" style="display:none">
-      <p class="list-label">画像品質</p>
-      <div class="quality-selector">
-        <button class="q-btn active" id="q-std" onclick="setQuality('jpeg85')">
-          JPEG 標準<span>85% · 軽量</span>
-        </button>
-        <button class="q-btn" id="q-high" onclick="setQuality('jpeg95')">
-          JPEG 高品質<span>95% · 高精細</span>
-        </button>
-        <button class="q-btn" id="q-png" onclick="setQuality('png')">
-          PNG<span>劣化なし</span>
-        </button>
+
+  <div class="drop" id="drop" onclick="document.getElementById('fi').click()">
+    <div class="drop-main">動画をタップして選択</div>
+    <div class="drop-sub">mp4 / mov &nbsp;·&nbsp; 最大10本</div>
+    <input type="file" id="fi" accept="video/mp4,video/quicktime,.mp4,.mov" multiple style="display:none" onchange="addFiles(this.files)">
+  </div>
+
+  <!-- ファイルリスト -->
+  <div id="fl-wrap" style="display:none">
+    <div class="sec">
+      <div class="sec-head">
+        <span class="t-label">動画</span>
+        <span class="t-mono" id="fl-count"></span>
       </div>
     </div>
+    <div class="list" id="fl"></div>
   </div>
-  <div class="bottom-bar" id="upload-bar" style="display:none">
-    <button class="btn btn-primary" onclick="startProcessing()" id="process-btn">動画を処理する</button>
+
+  <!-- 品質 -->
+  <div id="q-wrap" style="display:none;padding:14px 16px 0;">
+    <div class="t-label" style="margin-bottom:8px;">画像品質</div>
+    <div class="q-row">
+      <button class="q-opt on" id="q0" onclick="setQ(0)">JPEG 標準<small>85%</small></button>
+      <button class="q-opt"    id="q1" onclick="setQ(1)">JPEG 高品質<small>95%</small></button>
+      <button class="q-opt"    id="q2" onclick="setQ(2)">PNG<small>劣化なし</small></button>
+    </div>
+  </div>
+
+  <div class="btm" id="up-btm" style="display:none">
+    <div class="btm-row">
+      <button class="btn btn-fill" id="run-btn" onclick="startProcessing()">処理する</button>
+    </div>
   </div>
 </div>
 
 <!-- ======= PROCESSING ======= -->
 <div id="view-processing" class="view">
   <div class="hdr">
-    <div>
-      <div class="hdr-title">処理中</div>
-      <div class="hdr-sub" id="proc-sub">準備中...</div>
-    </div>
+    <span class="hdr-title">処理中</span>
+    <span class="hdr-sub" id="proc-sub"></span>
   </div>
-  <div class="section gap-col" id="processing-list"></div>
+  <div class="list" id="proc-list"></div>
 </div>
 
 <!-- ======= RESULTS ======= -->
 <div id="view-results" class="view">
   <div class="hdr">
-    <div>
-      <div class="hdr-title">抽出完了</div>
-      <div class="hdr-sub" id="results-sub"></div>
-    </div>
-    <button class="btn btn-ghost btn-sm" onclick="reset()">やり直す</button>
+    <span class="hdr-title" id="res-title">完了</span>
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 0;" onclick="reset()">やり直す</button>
   </div>
   <div class="tabs">
-    <button class="tab active" id="tab-pairs"  onclick="switchTab('pairs')">接続ペア</button>
-    <button class="tab"        id="tab-frames" onclick="switchTab('frames')">フレーム一覧</button>
+    <button class="tab on"  id="tab-p" onclick="switchTab('p')">接続ペア</button>
+    <button class="tab"     id="tab-f" onclick="switchTab('f')">フレーム一覧</button>
   </div>
-  <div class="section gap-col" id="pairs-content"></div>
-  <div class="section gap-col" id="frames-content" style="display:none"></div>
-
-  <!-- まとめて保存：固定ボトムバー -->
-  <div class="bottom-bar">
-    <div class="bottom-bar-row">
-      <button class="btn btn-primary" id="dl-all-btn" onclick="downloadAll()">まとめて保存 (ZIP)</button>
+  <div class="results-block" id="c-pairs"></div>
+  <div class="results-block" id="c-frames" style="display:none"></div>
+  <div class="btm">
+    <div class="btm-row">
+      <button class="btn btn-fill" id="dl-btn" onclick="downloadAll()">まとめて保存 (ZIP)</button>
     </div>
   </div>
 </div>
@@ -320,82 +300,80 @@ body{
 <script>
 'use strict';
 let files=[], results=[];
-let quality={fmt:'image/jpeg',q:.85,ext:'jpg'};
+const QS=[
+  {fmt:'image/jpeg',q:.85,ext:'jpg'},
+  {fmt:'image/jpeg',q:.95,ext:'jpg'},
+  {fmt:'image/png', q:1,  ext:'png'},
+];
+let qi=0;
 
-// ── ドラッグ&ドロップ ──
-const dz=document.getElementById('drop-zone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
-dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');addFiles(e.dataTransfer.files);});
+// drag & drop
+const dz=document.getElementById('drop');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',     e=>{e.preventDefault();dz.classList.remove('over');addFiles(e.dataTransfer.files);});
 
-// ── ユーティリティ ──
-const fmtSize=b=>b<1e6?(b/1e3).toFixed(0)+'KB':(b/1e6).toFixed(1)+'MB';
+// utils
+const fmtSz=b=>b<1e6?(b/1e3).toFixed(0)+'KB':(b/1e6).toFixed(1)+'MB';
 const fmtDur=s=>s<60?s.toFixed(1)+'s':Math.floor(s/60)+'m'+(s%60).toFixed(1)+'s';
 const fmtRes=(w,h)=>w+'×'+h;
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const basename=n=>n.replace(/\.[^/.]+$/,'');
-
-function onFileInput(fl){addFiles(fl);}
-
-// 品質選択
-function setQuality(key){
-  const map={
-    'jpeg85':{fmt:'image/jpeg',q:.85,ext:'jpg'},
-    'jpeg95':{fmt:'image/jpeg',q:.95,ext:'jpg'},
-    'png'   :{fmt:'image/png', q:1,  ext:'png'},
-  };
-  quality=map[key];
-  document.getElementById('q-std').classList.toggle('active',key==='jpeg85');
-  document.getElementById('q-high').classList.toggle('active',key==='jpeg95');
-  document.getElementById('q-png').classList.toggle('active',key==='png');
-}
+const base=n=>n.replace(/\.[^/.]+$/,'');
 
 function addFiles(fl){
   const v=Array.from(fl).filter(f=>f.type.startsWith('video/')||/\.(mp4|mov)$/i.test(f.name));
   if(!v.length){alert('対応形式: mp4, mov');return;}
   files=[...files,...v].slice(0,10);
-  renderFileList();
+  renderFiles();
 }
 
 function removeFile(i){
   files.splice(i,1);
-  document.getElementById('file-input').value='';
-  renderFileList();
+  document.getElementById('fi').value='';
+  renderFiles();
 }
 
-function renderFileList(){
-  const wrap=document.getElementById('file-list-wrap');
-  const list=document.getElementById('file-list');
-  const bar =document.getElementById('upload-bar');
-  const btn =document.getElementById('process-btn');
-  if(!files.length){wrap.style.display='none';bar.style.display='none';document.getElementById('quality-wrap').style.display='none';return;}
-  wrap.style.display='block';bar.style.display='block';document.getElementById('quality-wrap').style.display='block';
+function renderFiles(){
+  const wrap=document.getElementById('fl-wrap');
+  const qw  =document.getElementById('q-wrap');
+  const btm =document.getElementById('up-btm');
+  const list=document.getElementById('fl');
+  const cnt =document.getElementById('fl-count');
+  const btn =document.getElementById('run-btn');
+  if(!files.length){wrap.style.display='none';qw.style.display='none';btm.style.display='none';return;}
+  wrap.style.display='block';qw.style.display='block';btm.style.display='block';
+  cnt.textContent=files.length+'/10';
   btn.textContent=files.length+'本を処理する';
   list.innerHTML='';
   files.forEach((f,i)=>{
-    const el=document.createElement('div');
-    el.className='file-item';
-    el.innerHTML=`
-      <span class="file-num">${i+1}</span>
-      <span class="file-name">${esc(f.name)}</span>
-      <span class="file-size">${fmtSize(f.size)}</span>
-      <button class="btn btn-danger btn-sm" onclick="removeFile(${i})">×</button>`;
-    list.appendChild(el);
+    const row=document.createElement('div');
+    row.className='list-row';
+    row.innerHTML=`
+      <span class="t-mono" style="flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(f.name)}</span>
+      <span class="t-mono">${fmtSz(f.size)}</span>
+      <button class="btn btn-del" onclick="removeFile(${i})">×</button>`;
+    list.appendChild(row);
   });
 }
 
-// ── フレーム抽出 ──
-function seekAndCapture(video,canvas,ctx,time,ms){
+function setQ(i){
+  qi=i;
+  [0,1,2].forEach(j=>document.getElementById('q'+j).classList.toggle('on',j===i));
+}
+
+// frame extraction
+function seekCapture(video,canvas,ctx,time,ms){
   return new Promise(resolve=>{
     let done=false;
-    const finish=()=>{if(done)return;done=true;ctx.drawImage(video,0,0);resolve(canvas.toDataURL(quality.fmt,quality.q));};
-    const timer=setTimeout(finish,ms);
-    video.addEventListener('seeked',function h(){clearTimeout(timer);video.removeEventListener('seeked',h);finish();});
+    const finish=()=>{if(done)return;done=true;ctx.drawImage(video,0,0);resolve(canvas.toDataURL(QS[qi].fmt,QS[qi].q));};
+    const t=setTimeout(finish,ms);
+    video.addEventListener('seeked',function h(){clearTimeout(t);video.removeEventListener('seeked',h);finish();});
     video.currentTime=time;
   });
 }
 
-function extractFrames(file,onProgress){
+function extractFrames(file,onProg){
   return new Promise((resolve,reject)=>{
     const video=document.createElement('video');
     const url=URL.createObjectURL(file);
@@ -406,41 +384,38 @@ function extractFrames(file,onProgress){
     video.addEventListener('loadedmetadata',async()=>{
       const{duration:dur,videoWidth:w,videoHeight:h}=video;
       canvas.width=w;canvas.height=h;
-      onProgress(.2);
+      onProg(.2);
       try{await video.play();video.pause();}catch(_){}
-      onProgress(.35);
-      const firstFrame=await seekAndCapture(video,canvas,ctx,.01,5000);
-      onProgress(.68);
-      const lastFrame=await seekAndCapture(video,canvas,ctx,Math.max(0,dur-.15),5000);
+      onProg(.35);
+      const firstFrame=await seekCapture(video,canvas,ctx,.01,5000);
+      onProg(.68);
+      const lastFrame=await seekCapture(video,canvas,ctx,Math.max(0,dur-.15),5000);
       URL.revokeObjectURL(url);
-      onProgress(1);
-      resolve({name:file.name,dur,w,h,firstFrame,lastFrame,size:file.size});
+      onProg(1);
+      resolve({name:file.name,dur,w,h,firstFrame,lastFrame});
     });
     video.src=url;video.load();
   });
 }
 
-// ── ダウンロード ──
-function dl(dataUrl,name){
+function dlFile(dataUrl,name){
   const a=document.createElement('a');
   a.href=dataUrl;a.download=name;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-// ── まとめてダウンロード (ZIP) ──
 async function downloadAll(){
   const valid=results.filter(Boolean);
   if(!valid.length)return;
-  const btn=document.getElementById('dl-all-btn');
+  const btn=document.getElementById('dl-btn');
   btn.textContent='作成中...';btn.disabled=true;
   try{
     const zip=new JSZip();
     valid.forEach(r=>{
       const idx=results.indexOf(r)+1;
-      const b64first=r.firstFrame.split(',')[1];
-      const b64last =r.lastFrame.split(',')[1];
-      zip.file(`clip${idx}_first.${quality.ext}`,b64first,{base64:true});
-      zip.file(`clip${idx}_last.${quality.ext}`, b64last, {base64:true});
+      const ext=QS[qi].ext;
+      zip.file(`clip${idx}_first.${ext}`,r.firstFrame.split(',')[1],{base64:true});
+      zip.file(`clip${idx}_last.${ext}`, r.lastFrame.split(',')[1], {base64:true});
     });
     const blob=await zip.generateAsync({type:'blob'});
     const url=URL.createObjectURL(blob);
@@ -452,160 +427,152 @@ async function downloadAll(){
   finally{btn.textContent='まとめて保存 (ZIP)';btn.disabled=false;}
 }
 
-// ── 処理開始 ──
 async function startProcessing(){
   showView('processing');
-  const listEl=document.getElementById('processing-list');
+  const listEl=document.getElementById('proc-list');
   listEl.innerHTML='';results=[];
 
-  // カードを先に全部作る
   files.forEach((f,i)=>{
-    const el=document.createElement('div');
-    el.className='proc-item';
-    el.innerHTML=`
-      <div class="proc-num">${i+1}</div>
-      <div class="proc-body">
-        <div class="proc-name">${esc(f.name)}</div>
-        <div class="proc-bar-wrap"><div class="proc-bar" id="pb-${i}" style="width:0%"></div></div>
-        <p class="err-msg" id="err-${i}" style="display:none"></p>
+    const row=document.createElement('div');
+    row.className='list-row';
+    row.style.flexDirection='column';row.style.alignItems='stretch';row.style.gap='0';
+    row.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="dot dot-wait" id="dot-${i}"></span>
+        <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span>
+        <span class="t-mono" id="st-${i}">待機</span>
       </div>
-      <span class="badge badge-wait" id="bdg-${i}">待機</span>`;
-    listEl.appendChild(el);
+      <div class="prog-wrap" id="pw-${i}"><div class="prog-bar" id="pb-${i}" style="width:0%"></div></div>
+      <p class="err" id="er-${i}" style="display:none"></p>`;
+    listEl.appendChild(row);
   });
 
-  const setProg=(i,p)=>document.getElementById('pb-'+i).style.width=Math.round(p*100)+'%';
-  const setBadge=(i,cls,t)=>{const b=document.getElementById('bdg-'+i);b.className='badge '+cls;b.textContent=t;};
+  const setDot=(i,cls)=>{const d=document.getElementById('dot-'+i);d.className='dot '+cls;};
+  const setSt =(i,t)  =>{document.getElementById('st-'+i).textContent=t;};
+  const setPb =(i,p)  =>{document.getElementById('pb-'+i).style.width=Math.round(p*100)+'%';};
 
   for(let i=0;i<files.length;i++){
-    document.getElementById('proc-sub').textContent=(i+1)+' / '+files.length+' 処理中';
-    setBadge(i,'badge-running','処理中');
+    document.getElementById('proc-sub').textContent=(i+1)+' / '+files.length;
+    setDot(i,'dot-run');setSt(i,'処理中');
     try{
-      const r=await extractFrames(files[i],p=>setProg(i,p));
+      const r=await extractFrames(files[i],p=>setPb(i,p));
       results.push(r);
-      setBadge(i,'badge-done','完了');
-      document.getElementById('pb-'+i).classList.add('done');
-      setProg(i,1);
+      setDot(i,'dot-ok');setSt(i,'完了');
+      document.getElementById('pb-'+i).classList.add('done');setPb(i,1);
     }catch(err){
       results.push(null);
-      setBadge(i,'badge-fail','失敗');
-      const e=document.getElementById('err-'+i);
-      e.style.display='block';e.textContent=err.message;
+      setDot(i,'dot-err');setSt(i,'失敗');
+      document.getElementById('pw-'+i).style.display='none';
+      const e=document.getElementById('er-'+i);e.style.display='block';e.textContent=err.message;
     }
   }
   buildResults();
   showView('results');
 }
 
-// ── 結果構築 ──
 function buildResults(){
-  const valid=results.filter(Boolean).length;
-  document.getElementById('results-sub').textContent=valid+'本 成功 / '+results.length+'本';
+  const ok=results.filter(Boolean).length;
+  document.getElementById('res-title').textContent=ok+'本 完了';
 
-  // ── 接続ペアタブ ──
-  const pc=document.getElementById('pairs-content');
-  pc.innerHTML='';
+  const ext=QS[qi].ext;
+
+  // ── pairs ──
+  const cp=document.getElementById('c-pairs');
+  cp.innerHTML='';
   const pairs=[];
   for(let i=0;i<results.length-1;i++){
     if(results[i]&&results[i+1])pairs.push({A:results[i],B:results[i+1],ai:i,bi:i+1});
   }
-  document.getElementById('tab-pairs').textContent='接続ペア'+(pairs.length?'  '+pairs.length:'');
+  document.getElementById('tab-p').textContent='接続ペア'+( pairs.length ? ' '+pairs.length : '');
 
   if(!pairs.length){
-    pc.innerHTML='<p class="empty">接続ペアを表示するには<br>成功した動画が2本以上必要です</p>';
-  }else{
+    cp.innerHTML='<p class="empty">成功した動画が2本以上必要です</p>';
+  } else {
     pairs.forEach(({A,B,ai,bi})=>{
-      const card=document.createElement('div');
-      card.className='card';
-      card.innerHTML=`
-        <div class="pair-card-header">
-          <div>
-            <div class="pair-card-title">clip ${ai+1} &rarr; clip ${bi+1}</div>
-            <div class="pair-card-sub">${esc(basename(A.name))} &rarr; ${esc(basename(B.name))}</div>
+      const d=document.createElement('div');
+      d.className='pair-card';
+      d.innerHTML=`
+        <div class="pc-head">
+          <span class="pc-title">clip ${ai+1} &rarr; clip ${bi+1}</span>
+          <span class="pc-sub" style="margin-left:8px">${esc(base(A.name))} &rarr; ${esc(base(B.name))}</span>
+        </div>
+        <div class="pc-flow">
+          <div class="pc-clip">
+            <div class="pc-clabel">clip ${ai+1} last</div>
+            <div class="pair-thumb"><img src="${A.lastFrame}" loading="lazy"></div>
+            <div class="pc-cname">${esc(base(A.name))}</div>
+          </div>
+          <div class="pc-arrow"><span class="pc-arrow-icon">&#8594;</span></div>
+          <div class="pc-clip">
+            <div class="pc-clabel">clip ${bi+1} first</div>
+            <div class="pair-thumb"><img src="${B.firstFrame}" loading="lazy"></div>
+            <div class="pc-cname">${esc(base(B.name))}</div>
           </div>
         </div>
-        <div class="pair-flow">
-          <div class="pair-clip">
-            <div class="pair-clip-label">clip ${ai+1} &nbsp;last</div>
-            <div class="pair-thumb"><img src="${A.lastFrame}" alt="" loading="lazy"></div>
-            <div class="pair-clip-name">${esc(basename(A.name))}</div>
-          </div>
-          <div class="pair-arrow">
-            <div class="pair-arrow-line"></div>
-            <div class="pair-arrow-icon">&#8594;</div>
-            <div class="pair-arrow-line"></div>
-          </div>
-          <div class="pair-clip">
-            <div class="pair-clip-label">clip ${bi+1} &nbsp;first</div>
-            <div class="pair-thumb"><img src="${B.firstFrame}" alt="" loading="lazy"></div>
-            <div class="pair-clip-name">${esc(basename(B.name))}</div>
-          </div>
-        </div>
-        <div class="pair-save-row">
-          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${ai}].lastFrame,'clip${ai+1}_last.'+quality.ext)">clip${ai+1}_last 保存</button>
-          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${bi}].firstFrame,'clip${bi+1}_first.'+quality.ext)">clip${bi+1}_first 保存</button>
+        <div class="pc-saves">
+          <button class="btn" style="font-size:11px;width:100%" onclick="dlFile(results[${ai}].lastFrame,'clip${ai+1}_last.${ext}')">clip${ai+1}_last</button>
+          <button class="btn" style="font-size:11px;width:100%" onclick="dlFile(results[${bi}].firstFrame,'clip${bi+1}_first.${ext}')">clip${bi+1}_first</button>
         </div>`;
-      pc.appendChild(card);
+      cp.appendChild(d);
     });
   }
 
-  // ── フレーム一覧タブ ──
-  const fc=document.getElementById('frames-content');
-  fc.innerHTML='';
+  // ── frames ──
+  const cf=document.getElementById('c-frames');
+  cf.innerHTML='';
   results.forEach((r,i)=>{
     if(!r){
-      const el=document.createElement('div');
-      el.className='card';el.style.cssText='padding:14px;opacity:.5';
-      el.innerHTML=`<p style="font-size:13px;color:var(--red-text)">clip${i+1} — 抽出失敗</p>`;
-      fc.appendChild(el);return;
+      const d=document.createElement('div');
+      d.className='frame-card';
+      d.style.padding='10px 16px';
+      d.innerHTML=`<span style="font-size:12px;color:#e03131">clip${i+1} — 抽出失敗</span>`;
+      cf.appendChild(d);return;
     }
-    const card=document.createElement('div');
-    card.className='card';
-    card.innerHTML=`
-      <div class="fc-meta">
-        <span class="fc-num">${i+1}</span>
+    const d=document.createElement('div');
+    d.className='frame-card';
+    d.innerHTML=`
+      <div class="fc-head">
+        <span class="fc-idx">${String(i+1).padStart(2,'0')}</span>
         <span class="fc-name">${esc(r.name)}</span>
-        <span class="fc-meta-val" style="margin-left:auto">${fmtDur(r.dur)}</span>
-        <span class="fc-meta-val" style="margin-left:8px">${fmtRes(r.w,r.h)}</span>
+        <span class="t-mono">${fmtDur(r.dur)}</span>
+        <span class="t-mono" style="margin-left:6px">${fmtRes(r.w,r.h)}</span>
       </div>
-      <div class="frame-grid">
-        <div class="frame-col">
-          <div class="frame-label">first frame</div>
-          <div class="thumb"><img src="${r.firstFrame}" alt="" loading="lazy"></div>
-          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${i}].firstFrame,'clip${i+1}_first.'+quality.ext)">保存</button>
+      <div class="fc-grid">
+        <div class="fc-col">
+          <div class="t-label" style="margin-bottom:5px">first</div>
+          <div class="thumb"><img src="${r.firstFrame}" loading="lazy"></div>
+          <button class="btn" style="font-size:11px;width:min(100%,22vw)" onclick="dlFile(results[${i}].firstFrame,'clip${i+1}_first.${ext}')">保存</button>
         </div>
-        <div class="frame-col">
-          <div class="frame-label">last frame</div>
-          <div class="thumb"><img src="${r.lastFrame}" alt="" loading="lazy"></div>
-          <button class="btn btn-sm" style="width:100%" onclick="dl(results[${i}].lastFrame,'clip${i+1}_last.'+quality.ext)">保存</button>
+        <div class="fc-col">
+          <div class="t-label" style="margin-bottom:5px">last</div>
+          <div class="thumb"><img src="${r.lastFrame}" loading="lazy"></div>
+          <button class="btn" style="font-size:11px;width:min(100%,22vw)" onclick="dlFile(results[${i}].lastFrame,'clip${i+1}_last.${ext}')">保存</button>
         </div>
       </div>`;
-    fc.appendChild(card);
+    cf.appendChild(d);
   });
 }
 
-// ── タブ切り替え ──
 function switchTab(t){
-  document.getElementById('pairs-content').style.display =t==='pairs' ?'flex':'none';
-  document.getElementById('frames-content').style.display=t==='frames'?'flex':'none';
-  document.getElementById('tab-pairs').classList.toggle('active', t==='pairs');
-  document.getElementById('tab-frames').classList.toggle('active',t==='frames');
+  document.getElementById('c-pairs').style.display =t==='p'?'block':'none';
+  document.getElementById('c-frames').style.display=t==='f'?'block':'none';
+  document.getElementById('tab-p').classList.toggle('on',t==='p');
+  document.getElementById('tab-f').classList.toggle('on',t==='f');
 }
 
-// ── ビュー切り替え ──
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
 }
 
-// ── リセット ──
 function reset(){
-  files=[];results=[];
-  document.getElementById('file-list').innerHTML='';
-  document.getElementById('file-list-wrap').style.display='none';
-  document.getElementById('quality-wrap').style.display='none';
-  document.getElementById('upload-bar').style.display='none';
-  document.getElementById('file-input').value='';
-  setQuality('jpeg85');
+  files=[];results=[];qi=0;
+  document.getElementById('fl').innerHTML='';
+  document.getElementById('fl-wrap').style.display='none';
+  document.getElementById('q-wrap').style.display='none';
+  document.getElementById('up-btm').style.display='none';
+  document.getElementById('fi').value='';
+  setQ(0);
   showView('upload');
 }
 </script>
