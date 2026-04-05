@@ -10,66 +10,35 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-
 :root{
-  --bg:     #f9f9f8;
-  --surface:#ffffff;
-  --line:   #e8e8e6;
-  --line2:  #d0d0ce;
-  --t1:     #111110;
-  --t2:     #888884;
-  --t3:     #b8b8b4;
-  --accent: #111110;
-  --r:      4px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
+  --bg:#f9f9f8;--sf:#fff;--line:#e8e8e6;--line2:#d0d0ce;
+  --t1:#111110;--t2:#888884;--t3:#b8b8b4;--acc:#111110;--r:4px;
+  --sb:env(safe-area-inset-bottom,0px);
 }
-@media(prefers-color-scheme:dark){
-  :root{
-    --bg:     #111110;
-    --surface:#1c1c1b;
-    --line:   #2a2a28;
-    --line2:  #3a3a38;
-    --t1:     #f0f0ee;
-    --t2:     #888884;
-    --t3:     #555552;
-    --accent: #f0f0ee;
-  }
-}
-
+@media(prefers-color-scheme:dark){:root{
+  --bg:#111110;--sf:#1c1c1b;--line:#2a2a28;--line2:#3a3a38;
+  --t1:#f0f0ee;--t2:#888884;--t3:#555552;--acc:#f0f0ee;
+}}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
-  font-size:13px;line-height:1.5;
-  background:var(--bg);color:var(--t1);
-  min-height:100svh;
-  padding-bottom:calc(60px + var(--safe-b));
+  font-size:13px;line-height:1.5;background:var(--bg);color:var(--t1);
+  min-height:100svh;padding-bottom:calc(58px + var(--sb));
   -webkit-text-size-adjust:100%;
 }
+.mono{font-size:11px;font-family:'SF Mono','Menlo',monospace;color:var(--t3);}
+.label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);}
 
-/* ── typography ── */
-.t-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);}
-.t-mono {font-size:11px;font-family:'SF Mono','Menlo',monospace;color:var(--t3);}
+/* ── view ── */
+.view{display:none;}.view.active{display:block;}
 
-/* ── layout ── */
-.view{display:none;}
-.view.active{display:block;}
-
+/* ── header ── */
 .hdr{
-  padding:14px 16px 12px;
-  border-bottom:1px solid var(--line);
+  padding:13px 16px 11px;border-bottom:1px solid var(--line);
   position:sticky;top:0;background:var(--bg);z-index:20;
-  display:flex;align-items:baseline;justify-content:space-between;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
 }
-.hdr-title{font-size:14px;font-weight:600;letter-spacing:-.01em;}
-.hdr-sub{font-size:11px;color:var(--t2);}
-
-/* ── divider list layout ── */
-.list{border-top:1px solid var(--line);}
-.list-row{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 16px;
-  border-bottom:1px solid var(--line);
-  background:var(--surface);
-}
+.hdr-title{font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;}
+.hdr-sub{font-size:11px;color:var(--t2);white-space:nowrap;}
 
 /* ── buttons ── */
 .btn{
@@ -77,34 +46,35 @@ body{
   padding:6px 12px;border-radius:var(--r);
   font-size:12px;font-weight:500;font-family:inherit;
   cursor:pointer;border:1px solid var(--line2);
-  background:var(--surface);color:var(--t1);
+  background:var(--sf);color:var(--t1);
   -webkit-tap-highlight-color:transparent;
-  white-space:nowrap;
 }
-.btn:active{opacity:.55;}
-.btn-fill{background:var(--accent);color:var(--bg);border-color:var(--accent);}
-.btn-fill:disabled{opacity:.35;}
+.btn:active{opacity:.5;}
+.btn-fill{background:var(--acc);color:var(--bg);border-color:var(--acc);}
+.btn-fill:disabled{opacity:.3;}
 .btn-ghost{border-color:transparent;background:transparent;color:var(--t2);}
 .btn-del{border-color:transparent;background:transparent;color:var(--t3);padding:4px 8px;}
+.btn-xs{padding:4px 10px;font-size:11px;}
+
+/* ── list rows ── */
+.list{border-top:1px solid var(--line);}
+.row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px;border-bottom:1px solid var(--line);background:var(--sf);
+}
 
 /* ── drop zone ── */
 .drop{
-  margin:16px;
-  border:1px dashed var(--line2);
-  border-radius:var(--r);
-  padding:40px 20px;
-  text-align:center;
-  cursor:pointer;
-  background:var(--surface);
-  -webkit-tap-highlight-color:transparent;
+  margin:16px;border:1px dashed var(--line2);border-radius:var(--r);
+  padding:40px 20px;text-align:center;cursor:pointer;background:var(--sf);
+  -webkit-tap-highlight-color:transparent;transition:border-color .1s;
 }
 .drop.over{border-color:var(--t1);}
 .drop-main{font-size:13px;font-weight:500;margin-bottom:4px;}
 .drop-sub{font-size:11px;color:var(--t2);}
 
-/* ── section ── */
-.sec{padding:0 16px;}
-.sec+.sec{padding-top:16px;}
+/* ── section heading ── */
+.sec-wrap{padding:0 16px;}
 .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 
 /* ── quality toggle ── */
@@ -112,118 +82,140 @@ body{
 .q-opt{
   flex:1;padding:7px 4px;text-align:center;cursor:pointer;
   font-size:11px;font-weight:500;font-family:inherit;
-  background:var(--surface);color:var(--t2);border:none;
-  border-right:1px solid var(--line2);
+  background:var(--sf);color:var(--t2);border:none;
+  border-right:1px solid var(--line2);line-height:1.3;
   -webkit-tap-highlight-color:transparent;
-  line-height:1.3;
 }
 .q-opt:last-child{border-right:none;}
-.q-opt.on{background:var(--accent);color:var(--bg);}
-.q-opt small{display:block;font-size:10px;opacity:.65;margin-top:1px;}
+.q-opt small{display:block;font-size:10px;opacity:.6;margin-top:1px;}
+.q-opt.on{background:var(--acc);color:var(--bg);}
+.q-opt.on small{opacity:.55;}
 
 /* ── bottom bar ── */
 .btm{
-  position:fixed;bottom:0;left:0;right:0;
-  padding:10px 16px;
-  padding-bottom:calc(10px + var(--safe-b));
-  background:var(--bg);
-  border-top:1px solid var(--line);
-  z-index:20;
+  position:fixed;bottom:0;left:0;right:0;z-index:20;
+  padding:10px 16px;padding-bottom:calc(10px + var(--sb));
+  background:var(--bg);border-top:1px solid var(--line);
 }
-.btm-row{display:flex;gap:8px;}
-.btm .btn-fill{flex:1;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);}
+.btm .btn-fill{width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);}
 
 /* ── progress ── */
 .prog-wrap{height:2px;background:var(--line);border-radius:1px;overflow:hidden;margin-top:6px;}
 .prog-bar{height:100%;border-radius:1px;background:var(--t1);transition:width .25s;}
-.prog-bar.done{background:var(--t1);}
-
-/* ── status dot ── */
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.dot-wait{background:var(--t3);}
-.dot-run {background:var(--t1);}
-.dot-ok  {background:var(--t1);}
-.dot-err {background:#e03131;}
+.dot-w{background:var(--t3);}
+.dot-r{background:var(--t1);}
+.dot-o{background:var(--t1);}
+.dot-e{background:#e03131;}
 
 /* ── tabs ── */
 .tabs{
-  display:flex;gap:0;
-  border-bottom:1px solid var(--line);
-  background:var(--bg);
-  position:sticky;top:53px;z-index:19;
-  padding:0 16px;
+  display:flex;padding:0 16px;border-bottom:1px solid var(--line);
+  background:var(--bg);position:sticky;top:51px;z-index:19;
 }
 .tab{
-  padding:9px 0;margin-right:20px;
-  font-size:12px;font-weight:500;font-family:inherit;
-  background:transparent;border:none;cursor:pointer;
-  color:var(--t2);border-bottom:1.5px solid transparent;
-  margin-bottom:-1px;
-  -webkit-tap-highlight-color:transparent;
+  padding:9px 0;margin-right:20px;font-size:12px;font-weight:500;
+  font-family:inherit;background:transparent;border:none;cursor:pointer;
+  color:var(--t2);border-bottom:1.5px solid transparent;margin-bottom:-1px;
+  -webkit-tap-highlight-color:transparent;white-space:nowrap;
 }
 .tab.on{color:var(--t1);border-bottom-color:var(--t1);}
 
-/* ── frame cards ── */
-.frame-card{background:var(--surface);border-top:1px solid var(--line);}
-.frame-card+.frame-card{border-top:none;}
-.fc-head{
-  display:flex;align-items:center;gap:8px;
-  padding:9px 16px;
+/* ══════════════════════════════════
+   接続ペア: コンパクトリスト形式
+══════════════════════════════════ */
+
+/* ペアブロック全体 */
+.pair-block{
+  background:var(--sf);
   border-bottom:1px solid var(--line);
 }
-.fc-idx{font-size:11px;color:var(--t2);font-weight:600;flex-shrink:0;}
-.fc-name{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.fc-grid{display:grid;grid-template-columns:1fr 1fr;}
+
+/* ペア番号行 */
+.pair-num-row{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;border-bottom:1px solid var(--line);
+  background:var(--bg);
+}
+.pair-num{font-size:11px;font-weight:700;color:var(--t2);white-space:nowrap;}
+.pair-arrow-lbl{font-size:11px;color:var(--t2);white-space:nowrap;}
+.pair-clip-name{font-size:11px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Menlo',monospace;flex:1;min-width:0;}
+
+/* フレーム行: サムネイル + ラベル + 保存ボタン */
+.pair-frames-row{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:0;
+  padding:10px 12px;
+}
+
+/* サムネイルセル */
+.pf-cell{display:flex;flex-direction:column;gap:5px;}
+.pf-cell:last-child{align-items:flex-end;}
+
+/* サムネイル: 縦横どちらにも対応 */
+.pf-thumb{
+  width:min(36vw,140px);height:68px;
+  background:#000;
+  border-radius:2px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.pf-thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
+
+.pf-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t2);}
+.pf-cname{font-size:10px;font-family:'SF Mono','Menlo',monospace;color:var(--t3);max-width:min(36vw,140px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* 中央矢印 */
+.pf-arrow{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 8px;color:var(--t3);font-size:13px;
+  flex-shrink:0;
+}
+
+/* 保存ボタン行 */
+.pair-save-row{
+  display:grid;grid-template-columns:1fr 1fr;
+  border-top:1px solid var(--line);
+}
+.pair-save-row .btn{
+  border:none;border-radius:0;background:transparent;
+  padding:7px 8px;font-size:11px;color:var(--t2);
+  border-right:1px solid var(--line);
+}
+.pair-save-row .btn:last-child{border-right:none;}
+.pair-save-row .btn:active{background:var(--line);}
+
+/* ══════════════════════════════════
+   フレーム一覧
+══════════════════════════════════ */
+.fc-block{background:var(--sf);border-bottom:1px solid var(--line);}
+.fc-head{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;border-bottom:1px solid var(--line);background:var(--bg);
+}
+.fc-idx{font-size:11px;font-weight:700;color:var(--t2);}
+.fc-name{flex:1;font-size:11px;font-family:'SF Mono','Menlo',monospace;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc-meta{font-size:10px;color:var(--t3);white-space:nowrap;}
+
+.fc-frames-row{
+  display:grid;grid-template-columns:1fr 1fr;
+  divide-color:var(--line);
+}
 .fc-col{padding:10px 12px;}
 .fc-col:first-child{border-right:1px solid var(--line);}
-.thumb{
-  aspect-ratio:16/9;background:var(--line);
-  border-radius:2px;overflow:hidden;
+.fc-thumb{
+  width:min(36vw,140px);height:60px;
+  background:#000;border-radius:2px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
   margin-bottom:6px;
-  width:min(100%,22vw);
 }
-.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.fc-thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
 
-/* ── pair cards ── */
-.pair-card{background:var(--surface);border-top:1px solid var(--line);}
-.pair-card+.pair-card{border-top:none;}
-.pc-head{
-  display:flex;align-items:center;gap:6px;
-  padding:9px 16px;border-bottom:1px solid var(--line);
-}
-.pc-title{font-size:12px;font-weight:600;}
-.pc-sub{font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pc-flow{display:flex;align-items:flex-start;padding:10px 12px;gap:0;}
-.pc-clip{flex:1;min-width:0;}
-.pc-clabel{font-size:10px;font-weight:600;color:var(--t2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
-.pc-cname{font-size:10px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Menlo',monospace;}
-.pair-thumb{
-  aspect-ratio:16/9;background:var(--line);
-  border-radius:2px;overflow:hidden;
-  margin-bottom:4px;
-  width:min(100%,22vw);
-}
-.pair-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pc-arrow{
-  display:flex;align-items:center;
-  padding:0 8px;flex-shrink:0;
-  /* vertically center to the thumbnail */
-  padding-top:calc(22vw * 9/16 / 2 - 6px);
-}
-.pc-arrow-icon{font-size:12px;color:var(--t3);}
-.pc-saves{
-  display:grid;grid-template-columns:1fr 1fr;gap:6px;
-  padding:8px 12px;border-top:1px solid var(--line);
-}
-
-/* ── empty ── */
-.empty{padding:48px 16px;text-align:center;font-size:12px;color:var(--t2);}
-
-/* ── error ── */
-.err{font-size:11px;color:#e03131;margin-top:4px;}
-
-/* ── results wrapper ── */
-.results-block{margin-top:0;}
+/* ── empty / error ── */
+.empty{padding:40px 16px;text-align:center;font-size:12px;color:var(--t2);}
+.err-txt{font-size:11px;color:#e03131;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -236,25 +228,23 @@ body{
   </div>
 
   <div class="drop" id="drop" onclick="document.getElementById('fi').click()">
-    <div class="drop-main">動画をタップして選択</div>
+    <div class="drop-main">タップして動画を選択</div>
     <div class="drop-sub">mp4 / mov &nbsp;·&nbsp; 最大10本</div>
     <input type="file" id="fi" accept="video/mp4,video/quicktime,.mp4,.mov" multiple style="display:none" onchange="addFiles(this.files)">
   </div>
 
-  <!-- ファイルリスト -->
   <div id="fl-wrap" style="display:none">
-    <div class="sec">
+    <div class="sec-wrap">
       <div class="sec-head">
-        <span class="t-label">動画</span>
-        <span class="t-mono" id="fl-count"></span>
+        <span class="label">動画</span>
+        <span class="mono" id="fl-count"></span>
       </div>
     </div>
     <div class="list" id="fl"></div>
   </div>
 
-  <!-- 品質 -->
-  <div id="q-wrap" style="display:none;padding:14px 16px 0;">
-    <div class="t-label" style="margin-bottom:8px;">画像品質</div>
+  <div id="q-wrap" style="display:none;padding:14px 16px 0">
+    <div class="label" style="margin-bottom:8px">画像品質</div>
     <div class="q-row">
       <button class="q-opt on" id="q0" onclick="setQ(0)">JPEG 標準<small>85%</small></button>
       <button class="q-opt"    id="q1" onclick="setQ(1)">JPEG 高品質<small>95%</small></button>
@@ -263,9 +253,7 @@ body{
   </div>
 
   <div class="btm" id="up-btm" style="display:none">
-    <div class="btm-row">
-      <button class="btn btn-fill" id="run-btn" onclick="startProcessing()">処理する</button>
-    </div>
+    <button class="btn btn-fill" id="run-btn" onclick="startProcessing()">処理する</button>
   </div>
 </div>
 
@@ -282,18 +270,16 @@ body{
 <div id="view-results" class="view">
   <div class="hdr">
     <span class="hdr-title" id="res-title">完了</span>
-    <button class="btn btn-ghost" style="font-size:12px;padding:4px 0;" onclick="reset()">やり直す</button>
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 0" onclick="reset()">やり直す</button>
   </div>
   <div class="tabs">
-    <button class="tab on"  id="tab-p" onclick="switchTab('p')">接続ペア</button>
-    <button class="tab"     id="tab-f" onclick="switchTab('f')">フレーム一覧</button>
+    <button class="tab on" id="tab-p" onclick="switchTab('p')">接続ペア</button>
+    <button class="tab"    id="tab-f" onclick="switchTab('f')">フレーム一覧</button>
   </div>
-  <div class="results-block" id="c-pairs"></div>
-  <div class="results-block" id="c-frames" style="display:none"></div>
+  <div id="c-pairs"></div>
+  <div id="c-frames" style="display:none"></div>
   <div class="btm">
-    <div class="btm-row">
-      <button class="btn btn-fill" id="dl-btn" onclick="downloadAll()">まとめて保存 (ZIP)</button>
-    </div>
+    <button class="btn btn-fill" id="dl-btn" onclick="downloadAll()">まとめて保存 (ZIP)</button>
   </div>
 </div>
 
@@ -314,11 +300,12 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
 dz.addEventListener('drop',     e=>{e.preventDefault();dz.classList.remove('over');addFiles(e.dataTransfer.files);});
 
 // utils
-const fmtSz=b=>b<1e6?(b/1e3).toFixed(0)+'KB':(b/1e6).toFixed(1)+'MB';
+const fmtSz =b=>b<1e6?(b/1e3).toFixed(0)+'KB':(b/1e6).toFixed(1)+'MB';
 const fmtDur=s=>s<60?s.toFixed(1)+'s':Math.floor(s/60)+'m'+(s%60).toFixed(1)+'s';
 const fmtRes=(w,h)=>w+'×'+h;
-const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const base=n=>n.replace(/\.[^/.]+$/,'');
+const esc   =s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const base  =n=>n.replace(/\.[^/.]+$/,'');
+const pad2  =n=>String(n).padStart(2,'0');
 
 function addFiles(fl){
   const v=Array.from(fl).filter(f=>f.type.startsWith('video/')||/\.(mp4|mov)$/i.test(f.name));
@@ -326,43 +313,34 @@ function addFiles(fl){
   files=[...files,...v].slice(0,10);
   renderFiles();
 }
-
-function removeFile(i){
-  files.splice(i,1);
-  document.getElementById('fi').value='';
-  renderFiles();
-}
-
+function removeFile(i){files.splice(i,1);document.getElementById('fi').value='';renderFiles();}
 function renderFiles(){
   const wrap=document.getElementById('fl-wrap');
   const qw  =document.getElementById('q-wrap');
   const btm =document.getElementById('up-btm');
   const list=document.getElementById('fl');
-  const cnt =document.getElementById('fl-count');
-  const btn =document.getElementById('run-btn');
   if(!files.length){wrap.style.display='none';qw.style.display='none';btm.style.display='none';return;}
   wrap.style.display='block';qw.style.display='block';btm.style.display='block';
-  cnt.textContent=files.length+'/10';
-  btn.textContent=files.length+'本を処理する';
+  document.getElementById('fl-count').textContent=files.length+'/10';
+  document.getElementById('run-btn').textContent=files.length+'本を処理する';
   list.innerHTML='';
   files.forEach((f,i)=>{
     const row=document.createElement('div');
-    row.className='list-row';
+    row.className='row';
     row.innerHTML=`
-      <span class="t-mono" style="flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+      <span class="mono" style="flex-shrink:0">${pad2(i+1)}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(f.name)}</span>
-      <span class="t-mono">${fmtSz(f.size)}</span>
+      <span class="mono">${fmtSz(f.size)}</span>
       <button class="btn btn-del" onclick="removeFile(${i})">×</button>`;
     list.appendChild(row);
   });
 }
-
 function setQ(i){
   qi=i;
   [0,1,2].forEach(j=>document.getElementById('q'+j).classList.toggle('on',j===i));
 }
 
-// frame extraction
+// ── フレーム抽出 ──
 function seekCapture(video,canvas,ctx,time,ms){
   return new Promise(resolve=>{
     let done=false;
@@ -372,7 +350,6 @@ function seekCapture(video,canvas,ctx,time,ms){
     video.currentTime=time;
   });
 }
-
 function extractFrames(file,onProg){
   return new Promise((resolve,reject)=>{
     const video=document.createElement('video');
@@ -398,12 +375,22 @@ function extractFrames(file,onProg){
   });
 }
 
-function dlFile(dataUrl,name){
-  const a=document.createElement('a');
-  a.href=dataUrl;a.download=name;
+// ── ダウンロード ──
+function dlFile(dataUrl,filename){
+  const a=document.createElement('a');a.href=dataUrl;a.download=filename;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
+// ペア用ファイル名: pair01_clip1-last.jpg
+function pairFname(pairIdx,clipIdx,side){
+  return `pair${pad2(pairIdx+1)}_clip${clipIdx+1}-${side}.${QS[qi].ext}`;
+}
+// フレーム一覧用ファイル名: clip01_first.jpg
+function clipFname(clipIdx,side){
+  return `clip${pad2(clipIdx+1)}_${side}.${QS[qi].ext}`;
+}
+
+// ── まとめて保存 ──
 async function downloadAll(){
   const valid=results.filter(Boolean);
   if(!valid.length)return;
@@ -411,22 +398,25 @@ async function downloadAll(){
   btn.textContent='作成中...';btn.disabled=true;
   try{
     const zip=new JSZip();
-    valid.forEach(r=>{
-      const idx=results.indexOf(r)+1;
-      const ext=QS[qi].ext;
-      zip.file(`clip${idx}_first.${ext}`,r.firstFrame.split(',')[1],{base64:true});
-      zip.file(`clip${idx}_last.${ext}`, r.lastFrame.split(',')[1], {base64:true});
-    });
+    // ペア単位でファイルを追加
+    let pairIdx=0;
+    for(let i=0;i<results.length-1;i++){
+      if(results[i]&&results[i+1]){
+        zip.file(pairFname(pairIdx,i,'last'),   results[i].lastFrame.split(',')[1],  {base64:true});
+        zip.file(pairFname(pairIdx,i+1,'first'),results[i+1].firstFrame.split(',')[1],{base64:true});
+        pairIdx++;
+      }
+    }
     const blob=await zip.generateAsync({type:'blob'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download='frames.zip';
+    const a=document.createElement('a');a.href=url;a.download='frames.zip';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }catch(e){alert('ZIP作成失敗: '+e.message);}
   finally{btn.textContent='まとめて保存 (ZIP)';btn.disabled=false;}
 }
 
+// ── 処理開始 ──
 async function startProcessing(){
   showView('processing');
   const listEl=document.getElementById('proc-list');
@@ -434,119 +424,121 @@ async function startProcessing(){
 
   files.forEach((f,i)=>{
     const row=document.createElement('div');
-    row.className='list-row';
-    row.style.flexDirection='column';row.style.alignItems='stretch';row.style.gap='0';
+    row.className='row';row.style.flexDirection='column';row.style.alignItems='stretch';
     row.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="dot dot-wait" id="dot-${i}"></span>
+        <span class="dot dot-w" id="dot-${i}"></span>
         <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span>
-        <span class="t-mono" id="st-${i}">待機</span>
+        <span class="mono" id="st-${i}">待機</span>
       </div>
       <div class="prog-wrap" id="pw-${i}"><div class="prog-bar" id="pb-${i}" style="width:0%"></div></div>
-      <p class="err" id="er-${i}" style="display:none"></p>`;
+      <p class="err-txt" id="er-${i}" style="display:none"></p>`;
     listEl.appendChild(row);
   });
 
-  const setDot=(i,cls)=>{const d=document.getElementById('dot-'+i);d.className='dot '+cls;};
-  const setSt =(i,t)  =>{document.getElementById('st-'+i).textContent=t;};
-  const setPb =(i,p)  =>{document.getElementById('pb-'+i).style.width=Math.round(p*100)+'%';};
+  const setDot=(i,c)=>{document.getElementById('dot-'+i).className='dot '+c;};
+  const setSt =(i,t)=>{document.getElementById('st-'+i).textContent=t;};
+  const setPb =(i,p)=>{document.getElementById('pb-'+i).style.width=Math.round(p*100)+'%';};
 
   for(let i=0;i<files.length;i++){
     document.getElementById('proc-sub').textContent=(i+1)+' / '+files.length;
-    setDot(i,'dot-run');setSt(i,'処理中');
+    setDot(i,'dot-r');setSt(i,'処理中');
     try{
       const r=await extractFrames(files[i],p=>setPb(i,p));
       results.push(r);
-      setDot(i,'dot-ok');setSt(i,'完了');
-      document.getElementById('pb-'+i).classList.add('done');setPb(i,1);
+      setDot(i,'dot-o');setSt(i,'完了');setPb(i,1);
     }catch(err){
       results.push(null);
-      setDot(i,'dot-err');setSt(i,'失敗');
+      setDot(i,'dot-e');setSt(i,'失敗');
       document.getElementById('pw-'+i).style.display='none';
       const e=document.getElementById('er-'+i);e.style.display='block';e.textContent=err.message;
     }
   }
-  buildResults();
-  showView('results');
+  buildResults();showView('results');
 }
 
+// ── 結果構築 ──
 function buildResults(){
   const ok=results.filter(Boolean).length;
   document.getElementById('res-title').textContent=ok+'本 完了';
 
-  const ext=QS[qi].ext;
-
-  // ── pairs ──
+  // ── 接続ペアタブ ──
   const cp=document.getElementById('c-pairs');
   cp.innerHTML='';
   const pairs=[];
   for(let i=0;i<results.length-1;i++){
-    if(results[i]&&results[i+1])pairs.push({A:results[i],B:results[i+1],ai:i,bi:i+1});
+    if(results[i]&&results[i+1])pairs.push({A:results[i],B:results[i+1],ai:i,bi:i+1,pi:pairs.length});
   }
-  document.getElementById('tab-p').textContent='接続ペア'+( pairs.length ? ' '+pairs.length : '');
+  document.getElementById('tab-p').textContent='接続ペア'+(pairs.length?' '+pairs.length:'');
 
   if(!pairs.length){
     cp.innerHTML='<p class="empty">成功した動画が2本以上必要です</p>';
-  } else {
-    pairs.forEach(({A,B,ai,bi})=>{
-      const d=document.createElement('div');
-      d.className='pair-card';
-      d.innerHTML=`
-        <div class="pc-head">
-          <span class="pc-title">clip ${ai+1} &rarr; clip ${bi+1}</span>
-          <span class="pc-sub" style="margin-left:8px">${esc(base(A.name))} &rarr; ${esc(base(B.name))}</span>
+  }else{
+    pairs.forEach(({A,B,ai,bi,pi})=>{
+      const fnLast =pairFname(pi,ai,'last');
+      const fnFirst=pairFname(pi,bi,'first');
+      const block=document.createElement('div');
+      block.className='pair-block';
+      block.innerHTML=`
+        <!-- ペア番号行 -->
+        <div class="pair-num-row">
+          <span class="pair-num">pair ${pad2(pi+1)}</span>
+          <span class="pair-arrow-lbl">clip ${ai+1} → clip ${bi+1}</span>
+          <span class="pair-clip-name">${esc(base(A.name))} → ${esc(base(B.name))}</span>
         </div>
-        <div class="pc-flow">
-          <div class="pc-clip">
-            <div class="pc-clabel">clip ${ai+1} last</div>
-            <div class="pair-thumb"><img src="${A.lastFrame}" loading="lazy"></div>
-            <div class="pc-cname">${esc(base(A.name))}</div>
+        <!-- サムネイル行 -->
+        <div class="pair-frames-row">
+          <div class="pf-cell">
+            <span class="pf-label">clip ${ai+1} &nbsp;last</span>
+            <div class="pf-thumb"><img src="${A.lastFrame}" loading="lazy"></div>
+            <span class="pf-cname">${esc(base(A.name))}</span>
           </div>
-          <div class="pc-arrow"><span class="pc-arrow-icon">&#8594;</span></div>
-          <div class="pc-clip">
-            <div class="pc-clabel">clip ${bi+1} first</div>
-            <div class="pair-thumb"><img src="${B.firstFrame}" loading="lazy"></div>
-            <div class="pc-cname">${esc(base(B.name))}</div>
+          <div class="pf-arrow">→</div>
+          <div class="pf-cell">
+            <span class="pf-label">clip ${bi+1} &nbsp;first</span>
+            <div class="pf-thumb"><img src="${B.firstFrame}" loading="lazy"></div>
+            <span class="pf-cname">${esc(base(B.name))}</span>
           </div>
         </div>
-        <div class="pc-saves">
-          <button class="btn" style="font-size:11px;width:100%" onclick="dlFile(results[${ai}].lastFrame,'clip${ai+1}_last.${ext}')">clip${ai+1}_last</button>
-          <button class="btn" style="font-size:11px;width:100%" onclick="dlFile(results[${bi}].firstFrame,'clip${bi+1}_first.${ext}')">clip${bi+1}_first</button>
+        <!-- 保存ボタン行 -->
+        <div class="pair-save-row">
+          <button class="btn" onclick="dlFile(results[${ai}].lastFrame,'${fnLast}')">${fnLast}</button>
+          <button class="btn" onclick="dlFile(results[${bi}].firstFrame,'${fnFirst}')">${fnFirst}</button>
         </div>`;
-      cp.appendChild(d);
+      cp.appendChild(block);
     });
   }
 
-  // ── frames ──
+  // ── フレーム一覧タブ ──
   const cf=document.getElementById('c-frames');
   cf.innerHTML='';
   results.forEach((r,i)=>{
     if(!r){
       const d=document.createElement('div');
-      d.className='frame-card';
-      d.style.padding='10px 16px';
+      d.className='fc-block';d.style.padding='10px 12px';
       d.innerHTML=`<span style="font-size:12px;color:#e03131">clip${i+1} — 抽出失敗</span>`;
       cf.appendChild(d);return;
     }
+    const fnFirst=clipFname(i,'first');
+    const fnLast =clipFname(i,'last');
     const d=document.createElement('div');
-    d.className='frame-card';
+    d.className='fc-block';
     d.innerHTML=`
       <div class="fc-head">
-        <span class="fc-idx">${String(i+1).padStart(2,'0')}</span>
+        <span class="fc-idx">${pad2(i+1)}</span>
         <span class="fc-name">${esc(r.name)}</span>
-        <span class="t-mono">${fmtDur(r.dur)}</span>
-        <span class="t-mono" style="margin-left:6px">${fmtRes(r.w,r.h)}</span>
+        <span class="fc-meta">${fmtDur(r.dur)} &nbsp;${fmtRes(r.w,r.h)}</span>
       </div>
-      <div class="fc-grid">
+      <div class="fc-frames-row">
         <div class="fc-col">
-          <div class="t-label" style="margin-bottom:5px">first</div>
-          <div class="thumb"><img src="${r.firstFrame}" loading="lazy"></div>
-          <button class="btn" style="font-size:11px;width:min(100%,22vw)" onclick="dlFile(results[${i}].firstFrame,'clip${i+1}_first.${ext}')">保存</button>
+          <div class="label" style="margin-bottom:5px">first</div>
+          <div class="fc-thumb"><img src="${r.firstFrame}" loading="lazy"></div>
+          <button class="btn btn-xs" style="width:min(36vw,140px)" onclick="dlFile(results[${i}].firstFrame,'${fnFirst}')">保存</button>
         </div>
         <div class="fc-col">
-          <div class="t-label" style="margin-bottom:5px">last</div>
-          <div class="thumb"><img src="${r.lastFrame}" loading="lazy"></div>
-          <button class="btn" style="font-size:11px;width:min(100%,22vw)" onclick="dlFile(results[${i}].lastFrame,'clip${i+1}_last.${ext}')">保存</button>
+          <div class="label" style="margin-bottom:5px">last</div>
+          <div class="fc-thumb"><img src="${r.lastFrame}" loading="lazy"></div>
+          <button class="btn btn-xs" style="width:min(36vw,140px)" onclick="dlFile(results[${i}].lastFrame,'${fnLast}')">保存</button>
         </div>
       </div>`;
     cf.appendChild(d);
@@ -559,21 +551,16 @@ function switchTab(t){
   document.getElementById('tab-p').classList.toggle('on',t==='p');
   document.getElementById('tab-f').classList.toggle('on',t==='f');
 }
-
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
 }
-
 function reset(){
   files=[];results=[];qi=0;
-  document.getElementById('fl').innerHTML='';
-  document.getElementById('fl-wrap').style.display='none';
-  document.getElementById('q-wrap').style.display='none';
-  document.getElementById('up-btm').style.display='none';
+  ['fl','proc-list','c-pairs','c-frames'].forEach(id=>document.getElementById(id).innerHTML='');
+  ['fl-wrap','q-wrap','up-btm'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('fi').value='';
-  setQ(0);
-  showView('upload');
+  setQ(0);showView('upload');
 }
 </script>
 </body>
