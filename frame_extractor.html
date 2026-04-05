@@ -381,13 +381,20 @@ function dlFile(dataUrl,filename){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-// ペア用ファイル名: pair01_clip1-last.jpg
+// ペア用ファイル名: 20260405_1345_pair01_clip1-last.jpg
 function pairFname(pairIdx,clipIdx,side){
-  return `pair${pad2(pairIdx+1)}_clip${clipIdx+1}-${side}.${QS[qi].ext}`;
+  return `${dtPrefix()}_pair${pad2(pairIdx+1)}_clip${clipIdx+1}-${side}.${QS[qi].ext}`;
 }
-// フレーム一覧用ファイル名: clip01_first.jpg
+// フレーム一覧用ファイル名: 20260405_1345_clip01_first.jpg
 function clipFname(clipIdx,side){
-  return `clip${pad2(clipIdx+1)}_${side}.${QS[qi].ext}`;
+  return `${dtPrefix()}_clip${pad2(clipIdx+1)}_${side}.${QS[qi].ext}`;
+}
+// 日時プレフィックス生成
+function dtPrefix(){
+  const n=new Date();
+  const ymd=n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0');
+  const hm =String(n.getHours()).padStart(2,'0')+String(n.getMinutes()).padStart(2,'0');
+  return ymd+'_'+hm;
 }
 
 // ── まとめて保存 ──
@@ -409,7 +416,11 @@ async function downloadAll(){
     }
     const blob=await zip.generateAsync({type:'blob'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='frames.zip';
+    const now=new Date();
+    const ymd=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
+    const hm =String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    const zipName=`frames_${ymd}_${hm}_${valid.length}clips.zip`;
+    const a=document.createElement('a');a.href=url;a.download=zipName;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }catch(e){alert('ZIP作成失敗: '+e.message);}
