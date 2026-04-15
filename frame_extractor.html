@@ -371,6 +371,52 @@ body {
    Empty / Error
 ───────────────────────────────── */
 .empty { padding: 48px 20px; text-align: center; font-size: 13px; color: var(--tx-2); }
+
+/* ── Save bottom sheet ── */
+.sheet-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.45);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity .22s ease;
+}
+.sheet-backdrop.open    { display: block; }
+.sheet-backdrop.visible { opacity: 1; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 101;
+  background: var(--bg); border-radius: 14px 14px 0 0;
+  border-top: 1px solid var(--bd);
+  padding-bottom: var(--sb);
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.32,1,.36,1);
+}
+.sheet.open { transform: translateY(0); }
+.sheet-handle {
+  width: 36px; height: 4px; background: var(--bd-2);
+  border-radius: 2px; margin: 10px auto 6px;
+}
+.sheet-title {
+  text-align: center; font-size: 11px; color: var(--tx-3);
+  padding: 0 20px 10px; font-weight: 500; letter-spacing: .03em;
+  border-bottom: 1px solid var(--bd);
+}
+.sheet-options { display: flex; flex-direction: column; }
+.sheet-opt {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 24px; background: transparent; border: none;
+  border-bottom: 1px solid var(--bd); cursor: pointer;
+  font-family: inherit; text-align: left;
+  -webkit-tap-highlight-color: transparent; transition: background .1s;
+}
+.sheet-opt:last-child { border-bottom: none; }
+.sheet-opt:active { background: var(--bg-mute); }
+.sheet-opt-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--bg-mute); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.sheet-opt-body { display: flex; flex-direction: column; gap: 1px; }
+.sheet-opt-label { font-size: 15px; font-weight: 500; color: var(--tx); }
+.sheet-opt-desc  { font-size: 12px; color: var(--tx-2); }
 </style>
 </head>
 <body>
@@ -488,6 +534,30 @@ body {
   </div>
 </div>
 
+<!-- ═══════════════ SAVE SHEET ═══════════════ -->
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()">
+  <div class="sheet" id="save-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-title"></div>
+    <div class="sheet-options">
+      <button class="sheet-opt" id="sheet-opt-photos" onclick="sheetChoose('photos')">
+        <span class="sheet-opt-icon">🖼️</span>
+        <span class="sheet-opt-body">
+          <span class="sheet-opt-label">写真ライブラリ</span>
+          <span class="sheet-opt-desc">フォトアプリに保存</span>
+        </span>
+      </button>
+      <button class="sheet-opt" onclick="sheetChoose('files')">
+        <span class="sheet-opt-icon">📁</span>
+        <span class="sheet-opt-body">
+          <span class="sheet-opt-label">ファイル</span>
+          <span class="sheet-opt-desc">ダウンロードフォルダに保存</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 let files = [], results = [];
@@ -598,11 +668,61 @@ function extractFrames(file, onProg) {
   });
 }
 
-// ── download ──
+// ── download / save ──
 function dlFile(dataUrl, filename) {
   const a = document.createElement('a');
   a.href = dataUrl; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+let _pendingSave = null;
+
+function saveFile(dataUrl, filename) {
+  _pendingSave = { dataUrl, filename };
+  document.getElementById('sheet-title').textContent = filename;
+
+  // Web Share API（ファイル共有）非対応なら「写真ライブラリ」ボタンを非表示
+  const canShare = typeof navigator.share === 'function' &&
+                   typeof navigator.canShare === 'function';
+  document.getElementById('sheet-opt-photos').style.display = canShare ? '' : 'none';
+
+  const backdrop = document.getElementById('sheet-backdrop');
+  backdrop.classList.add('open');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    backdrop.classList.add('visible');
+    document.getElementById('save-sheet').classList.add('open');
+  }));
+}
+
+function closeSheet() {
+  const backdrop = document.getElementById('sheet-backdrop');
+  const sheet    = document.getElementById('save-sheet');
+  backdrop.classList.remove('visible');
+  sheet.classList.remove('open');
+  sheet.addEventListener('transitionend', () => backdrop.classList.remove('open'), { once: true });
+  _pendingSave = null;
+}
+
+async function sheetChoose(choice) {
+  if (!_pendingSave) return;
+  const { dataUrl, filename } = _pendingSave;
+  closeSheet();
+
+  if (choice === 'files') { dlFile(dataUrl, filename); return; }
+
+  // 写真ライブラリ: Web Share API 経由
+  try {
+    const res  = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+    } else {
+      dlFile(dataUrl, filename);
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') dlFile(dataUrl, filename);
+  }
 }
 function dtPrefix() {
   const n = new Date();
@@ -735,8 +855,8 @@ function buildResults() {
           </div>
         </div>
         <div class="pc-saves">
-          <button class="pc-save-btn" onclick="dlFile(results[${ai}].lastFrame,'${fnLast}')">${fnLast}</button>
-          <button class="pc-save-btn" onclick="dlFile(results[${bi}].firstFrame,'${fnFirst}')">${fnFirst}</button>
+          <button class="pc-save-btn" onclick="saveFile(results[${ai}].lastFrame,'${fnLast}')">${fnLast}</button>
+          <button class="pc-save-btn" onclick="saveFile(results[${bi}].firstFrame,'${fnFirst}')">${fnFirst}</button>
         </div>`;
       cp.appendChild(d);
     });
@@ -767,12 +887,12 @@ function buildResults() {
         <div class="fc-col">
           <div class="fc-col-label">first</div>
           <div class="fc-thumb"><img src="${r.firstFrame}" loading="lazy"></div>
-          <button class="btn btn-sm" style="width:min(38vw,148px)" onclick="dlFile(results[${i}].firstFrame,'${fnFirst}')">保存</button>
+          <button class="btn btn-sm" style="width:min(38vw,148px)" onclick="saveFile(results[${i}].firstFrame,'${fnFirst}')">保存</button>
         </div>
         <div class="fc-col">
           <div class="fc-col-label">last</div>
           <div class="fc-thumb"><img src="${r.lastFrame}" loading="lazy"></div>
-          <button class="btn btn-sm" style="width:min(38vw,148px)" onclick="dlFile(results[${i}].lastFrame,'${fnLast}')">保存</button>
+          <button class="btn btn-sm" style="width:min(38vw,148px)" onclick="saveFile(results[${i}].lastFrame,'${fnLast}')">保存</button>
         </div>
       </div>`;
     cf.appendChild(d);
